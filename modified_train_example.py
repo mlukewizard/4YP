@@ -10,10 +10,20 @@ import h5py
 
 file_dict = '/home/lukemarkham1383/trainEnvironment/npArrays/'    # Change this
 for k in range(50):     # 50 means training for 50 epochs
-    img_train_file = 'Augment001-005PatientNS_Original.npy'
-    bm_train_file = 'Augment001-005PatientNS_Binary.npy'
-    img_train = np.load(os.path.join(file_dict, img_train_file))
-    bm_train = np.load(os.path.join(file_dict, bm_train_file)) / 255    # Converting to binary
+    img_measure_file = 'Augment001-005PatientNS_Original.npy'
+    bm_measure_file = 'Augment001-005PatientNS_Binary.npy'
+    img_measure = np.load(os.path.join(file_dict, img_measure_file))
+    bm_measure = np.load(os.path.join(file_dict, bm_measure_file)) / 255    # Converting to binary
+
+    img_test_file = 'nonAugmentPatientNS_Original.npy'
+    bm_test_file = 'nonAugmentPatientNS_Binary.npy'
+    img_test = np.load(os.path.join(file_dict, img_test_file))
+    bm_test = np.load(os.path.join(file_dict, bm_test_file)) / 255
+    print(img_test.shape)
+    print(img_measure.shape)
+    testSplit = img_test.shape[0]/(img_test.shape[0]+img_measure.shape[0])
+    img_train = np.concatenate((img_measure, img_test))
+    bm_train = np.concatenate((bm_measure, bm_test))
 
     model_folder = '/home/lukemarkham1383/trainEnvironment/models'   # Change this
     model_list = os.listdir(model_folder)   # Checking if there is an existing model

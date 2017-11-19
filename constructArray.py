@@ -4,22 +4,19 @@ import matplotlib
 import matplotlib.pyplot as plt
 import scipy
 from scipy import misc
+import math
 
-imageDirectory = '/media/sf_sharedFolder/Images/39894NS/PostAugmentation/nonAugmentedInnerOriginals/'
-arrayDirectory = '/media/sf_sharedFolder/npArrays'
+imageDirectory = '/home/lukemarkham1383/trainEnvironment/nonAugmentedInnerBinary/'
+arrayDirectory = '/home/lukemarkham1383/trainEnvironment/npArrays/'
 patientID = 'NS'
-imageType = 'Original'
+imageType = 'Binary'
 
 fileList = sorted(os.listdir(imageDirectory))
 imgTotal = len(fileList)
 totalCounter = 0
 maxSliceNum = 475
 binNum = 1
-
-for fileString in fileList:
-    largestNumInString = findLargestNumber(fileString)
-    if largestNumInString > maxSliceNum:
-        maxSliceNum = largestNumInString
+nonAugmentedVersion = True
 
 npImageArray = np.ndarray((binNum * maxSliceNum, 512, 512, 1), dtype='float32')
 
@@ -31,8 +28,7 @@ for filename in fileList:
     augNum = int(split2[1])
     split3 = split1[1].split('Patient')
     sliceNum = int(split3[0])
-
-    arrayIndex = (sliceNum-1) + ((augNum%10 if augNum%10 < 6 else (augNum%10) -5)-1)*maxSliceNum
+    arrayIndex = int(sliceNum - 1 + (augNum-1-((math.floor((augNum-1)/binNum))*binNum))*maxSliceNum)
     image = misc.imread(imageDirectory + filename)
     #print(image[250,250])
     #plt.imshow(image)
@@ -40,7 +36,10 @@ for filename in fileList:
     npImageArray[arrayIndex, :, :, 0] = image
     totalCounter = totalCounter + 1
 
-    if ((augNum % 10 == 0) or (augNum % 10 == 5)) and (sliceNum == maxSliceNum):
-	print('Saved one')
-        np.save(arrayDirectory + 'Augment' + "%03d" % (augNum-4) + '-' + "%03d" % (augNum) + 'Patient' + patientID + '_' + imageType + '.npy', npImageArray)
+    if (augNum%binNum == 0) and (sliceNum == maxSliceNum):
+	print('Saved one at augNum ' + str(augNum))
+	if (nonAugmentedVersion == True):
+		np.save(arrayDirectory + 'nonAugment' + 'Patient' + patientID + '_' + imageType + '.npy', npImageArray)
+	else:
+        	np.save(arrayDirectory + 'Augment' + "%03d" % (augNum-4) + '-' + "%03d" % (augNum) + 'Patient' + patientID + '_' + imageType + '.npy', npImageArray)
 
