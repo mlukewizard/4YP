@@ -4,20 +4,24 @@ import matplotlib
 import matplotlib.pyplot as plt
 import scipy
 from scipy import misc
-from  __builtin__ import any as b_any
 
-imageDirectory = '/home/lukemarkham1383/trainEnvironment/nonAugmentedInnerOriginals/'
-arrayDirectory = '/home/lukemarkham1383/trainEnvironment/npArrays/' 
+imageDirectory = '/media/sf_sharedFolder/Images/39894NS/PostAugmentation/nonAugmentedInnerOriginals/'
+arrayDirectory = '/media/sf_sharedFolder/npArrays'
 patientID = 'NS'
 imageType = 'Original'
-
-binNum = 1
 
 fileList = sorted(os.listdir(imageDirectory))
 imgTotal = len(fileList)
 totalCounter = 0
 maxSliceNum = 475
-npImageArray = np.ndarray((5 * maxSliceNum, 512, 512, 1), dtype='float32')
+binNum = 1
+
+for fileString in fileList:
+    largestNumInString = findLargestNumber(fileString)
+    if largestNumInString > maxSliceNum:
+        maxSliceNum = largestNumInString
+
+npImageArray = np.ndarray((binNum * maxSliceNum, 512, 512, 1), dtype='float32')
 
 print('Loop starting')
 for filename in fileList:
@@ -39,3 +43,4 @@ for filename in fileList:
     if ((augNum % 10 == 0) or (augNum % 10 == 5)) and (sliceNum == maxSliceNum):
 	print('Saved one')
         np.save(arrayDirectory + 'Augment' + "%03d" % (augNum-4) + '-' + "%03d" % (augNum) + 'Patient' + patientID + '_' + imageType + '.npy', npImageArray)
+
