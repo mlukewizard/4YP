@@ -10,8 +10,8 @@ import h5py
 
 file_dict = '/home/lukemarkham1383/trainEnvironment/npArrays/'    # Change this
 for k in range(50):     # 50 means training for 50 epochs
-    img_measure_file = 'Augment001-005PatientNS_Original.npy'
-    bm_measure_file = 'Augment001-005PatientNS_Binary.npy'
+    img_measure_file = 'Augment001-002PatientNS_Original.npy'
+    bm_measure_file = 'Augment001-002PatientNS_Binary.npy'
     img_measure = np.load(os.path.join(file_dict, img_measure_file))
     bm_measure = np.load(os.path.join(file_dict, bm_measure_file)) / 255    # Converting to binary
 
@@ -19,8 +19,7 @@ for k in range(50):     # 50 means training for 50 epochs
     bm_test_file = 'nonAugmentPatientNS_Binary.npy'
     img_test = np.load(os.path.join(file_dict, img_test_file))
     bm_test = np.load(os.path.join(file_dict, bm_test_file)) / 255
-    print(img_test.shape)
-    print(img_measure.shape)
+    
     testSplit = img_test.shape[0]/(img_test.shape[0]+img_measure.shape[0])
     img_train = np.concatenate((img_measure, img_test))
     bm_train = np.concatenate((bm_measure, bm_test))
@@ -114,7 +113,7 @@ for k in range(50):     # 50 means training for 50 epochs
     model_checkpoint = ModelCheckpoint(model_check_file, monitor='val_loss', save_best_only=False)
 
     history = model.fit(img_train, bm_train, batch_size=8, initial_epoch=epoch_number, epochs=epoch_number + 1,
-                        verbose=1, shuffle=True, validation_split=0.2,
+                        verbose=1, shuffle=True, validation_split=testSplit,
                         callbacks=[model_checkpoint])
     # You can find details about fit on keras website, just a little reminder here: validation_split starts before
     # shuffle, so don't worry if shuffle would blur both training and validating data. If OOM (out of memory appears),

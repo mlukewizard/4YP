@@ -6,17 +6,17 @@ import scipy
 from scipy import misc
 import math
 
-imageDirectory = '/home/lukemarkham1383/trainEnvironment/nonAugmentedInnerBinary/'
+imageDirectory = '/home/lukemarkham1383/trainEnvironment/augmentedInnerOriginals/'
 arrayDirectory = '/home/lukemarkham1383/trainEnvironment/npArrays/'
 patientID = 'NS'
-imageType = 'Binary'
+imageType = 'Original'
 
 fileList = sorted(os.listdir(imageDirectory))
 imgTotal = len(fileList)
 totalCounter = 0
 maxSliceNum = 475
-binNum = 1
-nonAugmentedVersion = True
+binNum = 2
+nonAugmentedVersion = False
 
 npImageArray = np.ndarray((binNum * maxSliceNum, 512, 512, 1), dtype='float32')
 
@@ -41,5 +41,5 @@ for filename in fileList:
 	if (nonAugmentedVersion == True):
 		np.save(arrayDirectory + 'nonAugment' + 'Patient' + patientID + '_' + imageType + '.npy', npImageArray)
 	else:
-        	np.save(arrayDirectory + 'Augment' + "%03d" % (augNum-4) + '-' + "%03d" % (augNum) + 'Patient' + patientID + '_' + imageType + '.npy', npImageArray)
+        	np.save(arrayDirectory + 'Augment' + "%03d" % (augNum-binNum+1) + '-' + "%03d" % (augNum) + 'Patient' + patientID + '_' + imageType + '.npy', npImageArray)
 
