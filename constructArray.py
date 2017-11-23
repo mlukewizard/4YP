@@ -14,11 +14,11 @@ imageType = 'Original'
 fileList = sorted(os.listdir(imageDirectory))
 imgTotal = len(fileList)
 totalCounter = 0
-maxSliceNum = 475
+maxSliceNum = 285
 binNum = 2
 nonAugmentedVersion = False
 
-npImageArray = np.ndarray((binNum * maxSliceNum, 512, 512, 1), dtype='float32')
+npImageArray = np.ndarray((binNum * maxSliceNum, 256, 256, 1), dtype='float32')
 
 print('Loop starting')
 for filename in fileList:
