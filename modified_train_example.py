@@ -50,10 +50,8 @@ for k in range(2):     # 50 means training for 50 epochs
         conv4 = Conv2D(256, (3, 3), activation='relu', padding='same')(conv4)
         pool4 = MaxPooling2D(pool_size=(2, 2))(conv4)
 
-        conv5 = ConvLSTM2D(512, (3, 3), activation='relu', padding='same', stateful = True)(conv4)
-
-	#conv5 = Conv2D(512, (3, 3), activation='relu', padding='same')(pool4)
-        #conv5 = Conv2D(512, (3, 3), activation='relu', padding='same')(conv5)
+	conv5 = Conv2D(512, (3, 3), activation='relu', padding='same')(pool4)
+        conv5 = Conv2D(512, (3, 3), activation='relu', padding='same')(conv5)
         '''
         The number of filters 32, 64, 128, ..., 512 are half of the original U-net. Please check this one in case
         I am wrong about it. It will be interesting to calculate the number of parameters of each layer, or look 
