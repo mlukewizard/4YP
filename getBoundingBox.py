@@ -27,8 +27,41 @@ def getFolderBoundingBox(filePath):
     from scipy import misc
     cumulativeImage = np.ndarray([512,512])
     fileList = sorted(os.listdir(filePath))
+
+    fileList = filter(lambda k: '80' in k, fileList)
     for filename in fileList:
         cumulativeImage = cumulativeImage + misc.imread(filePath + filename)
     return getImageBoundingBox(cumulativeImage)
 
-print(getFolderBoundingBox('/media/sf_sharedFolder/Images/39894NS/512/PostAugmentation/nonAugmentedInnerBinary/'))
+def getFolderCoM(dicomFolder):
+    import dicom
+    import os
+    from scipy import ndimage
+    import numpy as np
+    import math
+
+    inputImage = np.ndarray([512, 512])
+    fileList = sorted(os.listdir(dicomFolder))
+    sampleFileList = filter(lambda k: '80' in k, fileList)
+    i = 0
+    xTotal = 0
+    yTotal = 0
+    for filename in sampleFileList:
+        i = i + 1
+        image = dicom.read_file(dicomFolder + filename)
+        inputImage[:, :] = image.pixel_array
+
+        # Gets image centre of mass, note y coordinate comes first and then x coordinate
+        CoM = ndimage.measurements.center_of_mass(inputImage)
+        xTotal = xTotal + CoM[1]
+        yTotal = yTotal + CoM[0]
+
+    xAvg = math.floor(xTotal / i)
+    yAvg = math.floor(yTotal / i)
+
+    # Sets the limits for a 256x256 bounding box
+    xMin = int(xAvg - 128 if xAvg - 128 > 0 else 0)
+    xMax = int(xMin + 256)
+    yMin = int(yAvg - 128 if yAvg - 128 > 0 else 0)
+    yMax = int(yMin + 256)
+    return np.array([xMin, xMax, yMin, yMax])
