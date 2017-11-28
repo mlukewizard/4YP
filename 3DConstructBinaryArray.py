@@ -6,10 +6,9 @@ import scipy
 from scipy import misc
 import math
 
-#innerImageDirectory = '/home/lukemarkham1383/trainEnvironment/augmentedInnerBinary/'
-innerImageDirectory = '/media/sf_sharedFolder/Images/39894NS/postAugmentation/innerAugmented/'
-outerImageDirectory = '/media/sf_sharedFolder/Images/39894NS/postAugmentation/outerAugmented/'
-arrayDirectory = '/media/sf_sharedFolder/npArrays/39894NS/'
+innerImageDirectory = '/home/lukemarkham1383/trainEnvironment/innerAugmented/'
+outerImageDirectory = '/home/lukemarkham1383/trainEnvironment/outerAugmented/'
+arrayDirectory = '/home/lukemarkham1383/trainEnvironment/npArrays/'
 
 patientID = 'NS'
 imageType = 'InnerBinary'

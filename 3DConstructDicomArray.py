@@ -6,7 +6,7 @@ import scipy
 from scipy import misc
 import math
 
-imageDirectory = '/home/lukemarkham1383/trainEnvironment/augmentedInnerOriginals/'
+imageDirectory = '/home/lukemarkham1383/trainEnvironment/croppedDicoms/'
 arrayDirectory = '/home/lukemarkham1383/trainEnvironment/npArrays/'
 patientID = 'NS'
 imageType = 'Original'

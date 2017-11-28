@@ -23,7 +23,7 @@ def my_loss(y_true, y_pred):
 file_dict = '/home/lukemarkham1383/trainEnvironment/npArrays/'  # Change this
 for k in range(10):  # 50 means training for 50 epochs
     img_measure_file = '3DAugment001-002PatientNS_Original.npy'
-    bm_measure_file = '3DAugment001-002PatientNS_Binary.npy'
+    bm_measure_file = '3DAugment001-002PatientNS_InnerBinary.npy'
     img_train = np.load(os.path.join(file_dict, img_measure_file))
     bm_train = np.load(os.path.join(file_dict, bm_measure_file)) / 255  # Converting to binary
 
@@ -104,7 +104,7 @@ for k in range(10):  # 50 means training for 50 epochs
 
         conv10 = TimeDistributed(BatchNormalization())(conv9)
         conv10 = TimeDistributed(Dropout(0.5))(conv10)
-        conv10 = TimeDistributed(Conv2D(1, (1, 1), activation='sigmoid'))(conv10)
+        conv10 = TimeDistributed(Conv2D(2, (1, 1), activation='sigmoid'))(conv10)
 
         model = Model(inputs=[inputs], outputs=[conv10])
 	
