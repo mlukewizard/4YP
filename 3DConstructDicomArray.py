@@ -13,7 +13,6 @@ imageType = 'Original'
 
 fileList = sorted(os.listdir(imageDirectory))
 imgTotal = len(fileList)
-totalCounter = 0
 maxSliceNum = 310
 binNum = 2
 nonAugmentedVersion = False
@@ -88,7 +87,6 @@ for filename in fileList:
         npImageArray[arrayIndex - 2, 3, :, :, 0] = image
         npImageArray[arrayIndex - 4, 4, :, :, 0] = image
 
-        totalCounter = totalCounter + 1
 
     if (augNum%binNum == 0) and (sliceNum == maxSliceNum):
 	print('Saved one at augNum ' + str(augNum))
