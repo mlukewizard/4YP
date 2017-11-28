@@ -127,7 +127,7 @@ for k in range(10):  # 50 means training for 50 epochs
         print('Using model number ' + str(epoch_number))
 	
     model.summary()
-    model.compile(optimizer=Adam(lr=1e-4), loss=my_loss)
+    model.compile(optimizer=Adam(lr=1e-3), loss=losses.binary_crossentropy)
 
     model_check_file = os.path.join(model_folder, 'weights.{epoch:02d}-{loss:.2f}.h5')
 
