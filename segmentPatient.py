@@ -12,10 +12,12 @@ import h5py
 import matplotlib
 import matplotlib.pyplot as plt
 from scipy import ndimage
-from getBoundingBox import getFolderCoM
+from imageProcessingFuntions import getFolderCoM
+import scipy.misc as misc
 
 dicomFolder = '/media/sf_sharedFolder/Images/39894NS/PreAugmentation/dicoms/'
 model_file = '/media/sf_sharedFolder/Models/20thNov/weights.07-0.01.h5'
+outputPredictions = '/media/sf_sharedFolder/predictions/'
 
 #Loads the model
 model = load_model(model_file)
@@ -45,7 +47,7 @@ for filename in fileList:
     #Predicts the location of the aneurysm
     predictedSegment = model.predict(modelInputArray)
     predictedSegment = predictedSegment[0, :, :, 0]
-
+    misc.imsave(outputPredictions + filename + 'outfile.png', predictedSegment)
 
     plt.subplot(121)
     plt.imshow(croppedImage, cmap='gray')

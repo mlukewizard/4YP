@@ -1,5 +1,3 @@
-
-
 from __future__ import print_function
 from keras.callbacks import ModelCheckpoint
 from keras.models import Model, load_model
