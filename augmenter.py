@@ -24,7 +24,6 @@ outerBinaryWriteDir = '/media/sf_sharedFolder/Images/39894NS/postAugmentation/ou
 dicomReadDir = '/media/sf_sharedFolder/Images/39894NS/PreAugmentation/dicoms/'
 dicomWriteDir = '/media/sf_sharedFolder/Images/39894NS/postAugmentation/croppedDicoms/'
 
-CoM = getFolderCoM(dicomReadDir)
 augmented = True
 counter = 0
 
@@ -32,8 +31,7 @@ tmpDicomDir = tmpFolder + 'temporaryDicoms/'
 tmpOuterBinaryDir = tmpFolder + 'temporaryOuterBinaries/'
 tmpInnerBinaryDir = tmpFolder + 'temporaryInnerBinaries/'
 
-
-augNum = 1
+augNum = 6
 for i in range(augNum):
 
     try:
@@ -48,7 +46,7 @@ for i in range(augNum):
 
     #contrast adjustment parameters
     upper = 0
-    while upper < 170:
+    while upper < 200:
         upper = 255*random()
 
     # Shear adjustment parameters

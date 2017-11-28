@@ -13,8 +13,8 @@ from keras import backend as K
 
 def my_loss(y_true, y_pred):
     smooth = 0
-    y_true_f = K.flatten(y_true)
-    y_pred_f = K.flatten(y_pred)
+    y_true_f = K.flatten(y_true[:,2,:,:,:])
+    y_pred_f = K.flatten(y_pred[:,2,:,:,:])
     intersection = K.sum(y_true_f * y_pred_f)
     dice_coeff = (2. * intersection + smooth) / (K.sum(y_true_f) + K.sum(y_pred_f) + smooth)
     return (-1)*dice_coeff
