@@ -1,4 +1,5 @@
 from __future__ import print_function
+from __future__ import division
 from keras.callbacks import ModelCheckpoint
 from keras.models import Model, load_model
 from keras.layers import Input, Conv2D, MaxPooling2D, UpSampling2D, concatenate, ConvLSTM2D, LSTM, TimeDistributed, Bidirectional, Dropout, BatchNormalization
@@ -30,23 +31,25 @@ img_test = np.load(os.path.join(validationArrayPath, img_test_file))
 bm_test = np.load(os.path.join(validationArrayPath, bm_test_file)) / 255
 
 fileList = sorted(os.listdir(trainingArrayDicomPath))
-
 for k in range(10): #runs for the len(filelist) * the number in range epochs
     for filename in fileList:
+	print('Training with file ' + filename)
         img_measure_file = filename
         split1 = filename.split('Original')[0]
         bm_measure_file = split1 + 'Binary.npy'
-        img_measure = np.load(os.path.join(trainingArrayPath, img_measure_file))
-        bm_measure = np.load(os.path.join(trainingArrayPath, bm_measure_file)) / 255  # Converting to binary
+        img_train = np.load(os.path.join(trainingArrayDicomPath, img_measure_file))
+        bm_train = np.load(os.path.join(trainingArrayBinaryPath, bm_measure_file)) / 255  # Converting to binary
 
-        testSplit = img_test.shape[0]/(img_test.shape[0]+img_measure.shape[0])
-        img_train = np.concatenate((img_measure, img_test))
-        bm_train = np.concatenate((bm_measure, bm_test))
+        testSplit = img_test.shape[0]/(img_test.shape[0]+img_train.shape[0])
+	print('Validation split is ' + str(testSplit))        
+
+        img_train = np.concatenate((img_train, img_test))
+        bm_train = np.concatenate((bm_train, bm_test))
 
         model_folder = '/home/lukemarkham1383/trainEnvironment/models'  # Change this
         model_list = os.listdir(model_folder)  # Checking if there is an existing model
         if model_list.__len__() == 0:  # Creating a new model if empty
-
+	
             inputs = Input((5, 256, 256, 1))
 
             conv1 = TimeDistributed(BatchNormalization())(inputs)
@@ -70,23 +73,26 @@ for k in range(10): #runs for the len(filelist) * the number in range epochs
             conv3 = TimeDistributed(Conv2D(128, (3, 3), activation='relu', padding='same'))(conv3)
             pool3 = TimeDistributed(MaxPooling2D(pool_size=(2, 2)))(conv3)
 
-            conv4 = TimeDistributed(BatchNormalization())(pool3)
-            conv4 = TimeDistributed(Conv2D(256, (3, 3), activation='relu', padding='same'))(conv4)
-            conv4 = TimeDistributed(BatchNormalization())(conv4)
-            conv4 = TimeDistributed(Dropout(0.5))(conv4)
-            conv4 = TimeDistributed(Conv2D(256, (3, 3), activation='relu', padding='same'))(conv4)
-            pool4 = TimeDistributed(MaxPooling2D(pool_size=(2, 2)))(conv4)
+            #conv4 = TimeDistributed(BatchNormalization())(pool3)
+            #conv4 = TimeDistributed(Conv2D(256, (3, 3), activation='relu', padding='same'))(conv4)
+            #conv4 = TimeDistributed(BatchNormalization())(conv4)
+            #conv4 = TimeDistributed(Dropout(0.5))(conv4)
+            #conv4 = TimeDistributed(Conv2D(256, (3, 3), activation='relu', padding='same'))(conv4)
+            #pool4 = TimeDistributed(MaxPooling2D(pool_size=(2, 2)))(conv4)
 
-            myLSTM = Bidirectional(ConvLSTM2D(512, (3, 3), activation='relu', padding='same', return_sequences=True))(pool4)
+            #myLSTM = Bidirectional(ConvLSTM2D(512, (3, 3), activation='relu', padding='same', return_sequences=True))(pool4)
 
-            up6 = concatenate([TimeDistributed(UpSampling2D(size=(2, 2)))(myLSTM), conv4], axis=4)
-            conv6 = TimeDistributed(BatchNormalization())(up6)
-            conv6 = TimeDistributed(Conv2D(256, (3, 3), activation='relu', padding='same'))(conv6)
-            conv6 = TimeDistributed(BatchNormalization())(conv6)
-            conv6 = TimeDistributed(Dropout(0.5))(conv6)
-            conv6 = TimeDistributed(Conv2D(256, (3, 3), activation='relu', padding='same'))(conv6)
+	    myLSTM = Bidirectional(ConvLSTM2D(256, (3, 3), activation='relu', padding='same', return_sequences=True))(pool3)
+            
+            #up6 = concatenate([TimeDistributed(UpSampling2D(size=(2, 2)))(myLSTM), conv4], axis=4)
+            #conv6 = TimeDistributed(BatchNormalization())(up6)
+            #conv6 = TimeDistributed(Conv2D(256, (3, 3), activation='relu', padding='same'))(conv6)
+            #conv6 = TimeDistributed(BatchNormalization())(conv6)
+            #conv6 = TimeDistributed(Dropout(0.5))(conv6)
+            #conv6 = TimeDistributed(Conv2D(256, (3, 3), activation='relu', padding='same'))(conv6)
 
-            up7 = concatenate([TimeDistributed(UpSampling2D(size=(2, 2)))(conv6), conv3], axis=4)
+            #up7 = concatenate([TimeDistributed(UpSampling2D(size=(2, 2)))(conv6), conv3], axis=4)
+	    up7 = concatenate([TimeDistributed(UpSampling2D(size=(2, 2)))(myLSTM), conv3], axis=4)
             conv7 = TimeDistributed(BatchNormalization())(up7)
             conv7 = TimeDistributed(Conv2D(128, (3, 3), activation='relu', padding='same'))(conv7)
             conv7 = TimeDistributed(BatchNormalization())(conv7)
@@ -130,13 +136,13 @@ for k in range(10): #runs for the len(filelist) * the number in range epochs
             model = load_model(os.path.join(model_folder, model_file))
             print('Using model number ' + str(epoch_number))
 
-        model.summary()
+        #model.summary()
         model.compile(optimizer=Adam(lr=1e-3), loss=losses.binary_crossentropy)
-
+	print('Compiled models')
         model_check_file = os.path.join(model_folder, 'weights.{epoch:02d}-{loss:.2f}.h5')
-
+	print('Defined check file')
         model_checkpoint = ModelCheckpoint(model_check_file, monitor='val_loss', save_best_only=False)
-
-        history = model.fit(img_train, bm_train, batch_size=4, initial_epoch=epoch_number, epochs=epoch_number + 1,
+	print('Defined checkpoint')
+        model.fit(img_train, bm_train, batch_size=4, initial_epoch=epoch_number, epochs=epoch_number + 1,
                             verbose=1, shuffle=True, validation_split=testSplit,
                             callbacks=[model_checkpoint])
