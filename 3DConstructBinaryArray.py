@@ -6,33 +6,43 @@ import scipy
 from scipy import misc
 import math
 
-innerImageDirectory = '/home/lukemarkham1383/trainEnvironment/innerAugmented/'
-outerImageDirectory = '/home/lukemarkham1383/trainEnvironment/outerAugmented/'
+innerImageDirectory = '/home/lukemarkham1383/trainEnvironment/RRValidationData/innerNonAugment/'
+outerImageDirectory = '/home/lukemarkham1383/trainEnvironment/RRValidationData/outerNonAugment/'
 arrayDirectory = '/home/lukemarkham1383/trainEnvironment/npArrays/'
+#innerImageDirectory = '/home/lukemarkham1383/trainEnvironment/NSTrainingData/innerAugmented/'
+#outerImageDirectory = '/home/lukemarkham1383/trainEnvironment/NSTrainingData/outerAugmented/'
 
-patientID = 'NS'
+patientID = 'RR'
 imageType = 'InnerBinary'
 
 fileList = sorted(os.listdir(innerImageDirectory))
 imgTotal = len(fileList)
 totalCounter = 0
-maxSliceNum = 310
-binNum = 2
-nonAugmentedVersion = False
+maxSliceNum = 320
+binNum = 1
+nonAugmentedVersion = True
 
 npImageArray = np.ndarray((binNum*maxSliceNum, 5, 256, 256, 2), dtype='float32')
 
 print('Loop starting')
 for filename in fileList:
-
+    print(filename)
     split1 = filename.split(imageType)
-    split2 = split1[0].split('Augment')
-    augNum = int(split2[1])
+    if nonAugmentedVersion == True:
+        split2 = split1[0].split('NonAugment')
+	augNum = 777777777777777
+    elif nonAugmentedVersion == False:
+        split2 = split1[0].split('Augment')
+        augNum = int(split2[1])
     split3 = split1[1].split('Patient')
     sliceNum = int(split3[0])
-    arrayIndex = int(sliceNum - 1 + (augNum-1-((math.floor((augNum-1)/binNum))*binNum))*maxSliceNum)
+    if nonAugmentedVersion == False:
+        arrayIndex = int(sliceNum - 1 + (augNum-1-((math.floor((augNum-1)/binNum))*binNum))*maxSliceNum)
+        outerImageFileName = 'Augment' + split2[1] + 'OuterBinary' + split3[0] + 'Patient' + patientID + '.png'
+    elif nonAugmentedVersion == True:
+        arrayIndex = totalCounter
+        outerImageFileName = 'NonAugment' + 'OuterBinary' + split3[0] + 'Patient' + patientID + '.png'
 
-    outerImageFileName = 'Augment' + split2[1] + 'OuterBinary' + split3[0] + 'Patient' + patientID + '.png'
     outerImage = misc.imread(outerImageDirectory + outerImageFileName, flatten=True)
     innerImage = misc.imread(innerImageDirectory + filename, flatten=True)
 
@@ -100,11 +110,11 @@ for filename in fileList:
             npImageArray[arrayIndex - 2, 3, :, :, i] = image
             npImageArray[arrayIndex - 4, 4, :, :, i] = image
 
-            totalCounter = totalCounter + 1
+    totalCounter = totalCounter + 1
 
-    if (augNum%binNum == 0) and (sliceNum == maxSliceNum):
+    if ((augNum%binNum == 0) or (nonAugmentedVersion == True)) and (sliceNum == maxSliceNum):
 	if (nonAugmentedVersion == True):
-		np.save(arrayDirectory + '3DnonAugment' + 'Patient' + patientID + '_' + imageType + '.npy', npImageArray)
+		np.save(arrayDirectory + '3DNonAugment' + 'Patient' + patientID + '_' + imageType + '.npy', npImageArray)
 	else:
             np.save(arrayDirectory + '3DAugment' + "%03d" % (augNum-binNum+1) + '-' + "%03d" % (augNum) + 'Patient' + patientID + '_' + imageType + '.npy', npImageArray)
         print('Saved one at augNum ' + str(augNum))
