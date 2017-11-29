@@ -17,14 +17,15 @@ import sys
 tmpFolder = '/media/sf_sharedFolder/4YP_Python/tmp/'
 
 #Set read and write directories for the images
-innerBinaryReadDir = '/media/sf_sharedFolder/Images/RR/preAugmentation/innerBinary/'
-innerBinaryWriteDir = '/media/sf_sharedFolder/Images/RR/postAugmentation/innerNonAugment/'
-outerBinaryReadDir = '/media/sf_sharedFolder/Images/RR/preAugmentation/outerBinary/'
-outerBinaryWriteDir = '/media/sf_sharedFolder/Images/RR/postAugmentation/outerNonAugment/'
-dicomReadDir = '/media/sf_sharedFolder/Images/RR/preAugmentation/dicoms/'
-dicomWriteDir = '/media/sf_sharedFolder/Images/RR/postAugmentation/croppedDicoms/'
+innerBinaryReadDir = '/media/sf_sharedFolder/Images/NS/preAugmentation/innerBinary/'
+innerBinaryWriteDir = '/media/sf_sharedFolder/Images/NS/postAugmentation/innerAugmented/'
+outerBinaryReadDir = '/media/sf_sharedFolder/Images/NS/preAugmentation/outerBinary/'
+outerBinaryWriteDir = '/media/sf_sharedFolder/Images/NS/postAugmentation/outerAugmented/'
+dicomReadDir = '/media/sf_sharedFolder/Images/NS/preAugmentation/dicoms/'
+dicomWriteDir = '/media/sf_sharedFolder/Images/NS/postAugmentation/croppedDicoms/'
 
-augmented = False
+PatientID = 'NS'
+augmented = True
 counter = 0
 
 tmpDicomDir = tmpFolder + 'temporaryDicoms/'
@@ -46,7 +47,7 @@ for i in range(augNum):
 
     #contrast adjustment parameters
     upper = 0
-    while upper < 200:
+    while upper < 210:
         upper = 255*random()
 
     # Shear adjustment parameters
@@ -115,13 +116,13 @@ for i in range(augNum):
             dicomImage = lukesAugment(dicomImage, [currentLower, currentUpper], [0, 255])
 
         if augmented == True:
-            innerBinaryWritename = 'Augment' + '%.2d' % (i+1) + 'InnerBinary' + '%.2d' % trueFileNum + 'PatientNS' + '.png'
-            outerBinaryWritename = 'Augment' + '%.2d' % (i+1) + 'OuterBinary' + '%.2d' % trueFileNum + 'PatientNS' + '.png'
-            dicomWritename = 'Augment' + '%.2d' % (i+1) + 'Original' + '%.2d' % trueFileNum + 'PatientNS' + '.png'
+            innerBinaryWritename = 'Augment' + '%.2d' % (i+1) + 'InnerBinary' + '%.3d' % trueFileNum + 'Patient' + PatientID + '.png'
+            outerBinaryWritename = 'Augment' + '%.2d' % (i+1) + 'OuterBinary' + '%.3d' % trueFileNum + 'Patient' + PatientID + '.png'
+            dicomWritename = 'Augment' + '%.2d' % (i+1) + 'Original' + '%.3d' % trueFileNum + 'Patient' + PatientID + '.png'
         elif augmented == False:
-            innerBinaryWritename = 'NonAugment' + 'InnerBinary' + '%.2d' % trueFileNum + 'PatientNS' + '.png'
-            outerBinaryWritename = 'NonAugment' + 'OuterBinary' + '%.2d' % trueFileNum + 'PatientNS' + '.png'
-            dicomWritename = 'NonAugment' + 'Original' + '%.2d' % trueFileNum + 'PatientNS' + '.png'
+            innerBinaryWritename = 'NonAugment' + 'InnerBinary' + '%.3d' % trueFileNum + 'Patient' + PatientID + '.png'
+            outerBinaryWritename = 'NonAugment' + 'OuterBinary' + '%.3d' % trueFileNum + 'Patient' + PatientID + '.png'
+            dicomWritename = 'NonAugment' + 'Original' + '%.3d' % trueFileNum + 'Patient' + PatientID + '.png'
 
         innerBinaryImage.convert('RGB').save(tmpInnerBinaryDir + innerBinaryWritename,'PNG')
         outerBinaryImage.convert('RGB').save(tmpOuterBinaryDir + outerBinaryWritename,'PNG')
