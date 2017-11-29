@@ -20,23 +20,23 @@ def my_loss(y_true, y_pred):
     return (-1)*dice_coeff
 #    return K.mean(K.binary_crossentropy(y_true[:,2,:,:,:], y_pred[:,2,:,:,:], axis=-1)
 
-file_dict = '/home/lukemarkham1383/trainEnvironment/npArrays/'  # Change this
+validationArrayPath = '/home/lukemarkham1383/trainEnvironment/npArrays/validation/'
+trainingArrayPath = '/home/lukemarkham1383/trainEnvironment/npArrays/training/'
+ 
 for k in range(10):  # 50 means training for 50 epochs
     img_measure_file = '3DAugment001-002PatientNS_Original.npy'
     bm_measure_file = '3DAugment001-002PatientNS_InnerBinary.npy'
-    img_train = np.load(os.path.join(file_dict, img_measure_file))
-    bm_train = np.load(os.path.join(file_dict, bm_measure_file)) / 255  # Converting to binary
+    img_measure = np.load(os.path.join(trainingArrayPath, img_measure_file))
+    bm_measure = np.load(os.path.join(trainingArrayPath, bm_measure_file)) / 255  # Converting to binary
 
-    # img_test_file = 'nonAugmentPatientNS_Original.npy'
-    # bm_test_file = 'nonAugmentPatientNS_Binary.npy'
-    # img_test = np.load(os.path.join(file_dict, img_test_file))
-    # bm_test = np.load(os.path.join(file_dict, bm_test_file)) / 255
+    img_test_file = 'nonAugmentPatientNS_Original.npy'
+    bm_test_file = 'nonAugmentPatientNS_Binary.npy'
+    img_test = np.load(os.path.join(file_dict, img_test_file))
+    bm_test = np.load(os.path.join(file_dict, bm_test_file)) / 255
 
-    # testSplit = img_test.shape[0]/(img_test.shape[0]+img_measure.shape[0])
-    #img_train = img_measure
-    # np.concatenate((img_measure, img_test))
-    #bm_train = bm_measure
-    # np.concatenate((bm_measure, bm_test))
+    testSplit = img_test.shape[0]/(img_test.shape[0]+img_measure.shape[0])
+    img_train = np.concatenate((img_measure, img_test))
+    bm_train = np.concatenate((bm_measure, bm_test))
 
     model_folder = '/home/lukemarkham1383/trainEnvironment/models'  # Change this
     model_list = os.listdir(model_folder)  # Checking if there is an existing model
