@@ -6,21 +6,21 @@ import scipy
 from scipy import misc
 import math
 
-innerImageDirectory = '/home/lukemarkham1383/trainEnvironment/RRValidationData/innerNonAugment/'
-outerImageDirectory = '/home/lukemarkham1383/trainEnvironment/RRValidationData/outerNonAugment/'
+#innerImageDirectory = '/home/lukemarkham1383/trainEnvironment/RRValidationData/innerNonAugment/'
+#outerImageDirectory = '/home/lukemarkham1383/trainEnvironment/RRValidationData/outerNonAugment/'
 arrayDirectory = '/home/lukemarkham1383/trainEnvironment/npArrays/'
-#innerImageDirectory = '/home/lukemarkham1383/trainEnvironment/NSTrainingData/innerAugmented/'
-#outerImageDirectory = '/home/lukemarkham1383/trainEnvironment/NSTrainingData/outerAugmented/'
+innerImageDirectory = '/home/lukemarkham1383/trainEnvironment/NSTrainingData/innerAugmented/'
+outerImageDirectory = '/home/lukemarkham1383/trainEnvironment/NSTrainingData/outerAugmented/'
 
-patientID = 'RR'
+patientID = 'NS'
 imageType = 'InnerBinary'
 
 fileList = sorted(os.listdir(innerImageDirectory))
 imgTotal = len(fileList)
 totalCounter = 0
-maxSliceNum = 320
+maxSliceNum = 310
 binNum = 1
-nonAugmentedVersion = True
+nonAugmentedVersion = False
 
 npImageArray = np.ndarray((binNum*maxSliceNum, 5, 256, 256, 2), dtype='float32')
 
@@ -114,8 +114,8 @@ for filename in fileList:
 
     if ((augNum%binNum == 0) or (nonAugmentedVersion == True)) and (sliceNum == maxSliceNum):
 	if (nonAugmentedVersion == True):
-		np.save(arrayDirectory + '3DNonAugment' + 'Patient' + patientID + '_' + imageType + '.npy', npImageArray)
+		np.save(arrayDirectory + '3DNonAugment' + 'Patient' + patientID + '_' + 'Binary' + '.npy', npImageArray)
 	else:
-            np.save(arrayDirectory + '3DAugment' + "%03d" % (augNum-binNum+1) + '-' + "%03d" % (augNum) + 'Patient' + patientID + '_' + imageType + '.npy', npImageArray)
+            np.save(arrayDirectory + '3DAugment' + "%03d" % (augNum-binNum+1) + '-' + "%03d" % (augNum) + 'Patient' + patientID + '_' + 'Binary' + '.npy', npImageArray)
         print('Saved one at augNum ' + str(augNum))
 

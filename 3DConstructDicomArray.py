@@ -6,8 +6,10 @@ import scipy
 from scipy import misc
 import math
 
-imageDirectory = '/home/lukemarkham1383/trainEnvironment/RRValidationData/croppedDicoms/'
+#imageDirectory = '/home/lukemarkham1383/trainEnvironment/RRValidationData/croppedDicoms/'
 arrayDirectory = '/home/lukemarkham1383/trainEnvironment/npArrays/'
+imageDirectory = '/home/lukemarkham1383/trainEnvironment/NSTrainingData/croppedDicoms/'
+
 patientID = 'NS'
 imageType = 'Original'
 
@@ -15,7 +17,7 @@ fileList = sorted(os.listdir(imageDirectory))
 imgTotal = len(fileList)
 totalCounter = 0
 maxSliceNum = 310
-binNum = 2
+binNum = 1
 nonAugmentedVersion = False
 
 npImageArray = np.ndarray((binNum*maxSliceNum, 5, 256, 256, 1), dtype='float32')
