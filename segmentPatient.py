@@ -17,8 +17,7 @@ import scipy.misc as misc
 from PIL import Image, ImageEnhance
 
 tmpFolder = '/media/sf_sharedFolder/4YP_Python/tmp/'
-dicomFolder = '/media/sf_sharedFolder/Images/39894NS/PreAugmentation/dicoms/'
-#model_file = '/media/sf_sharedFolder/Models/20thNov/weights.07-0.01.h5'
+dicomFolder = '/media/sf_sharedFolder/Images/NS/preAugmentation/dicoms/'
 model_file = '/media/sf_sharedFolder/Models/28thNov/weights.05-0.04.h5'
 outputPredictions = '/media/sf_sharedFolder/predictions/'
 
@@ -48,7 +47,9 @@ imgTotal = len(fileList)
 
 npImageArray = np.ndarray((imgTotal, 5, 256, 256, 1), dtype='float32')
 
+print('Turning files into numpy arrays')
 for filename in fileList:
+    print('Reading file ' + str(counter) + '/' + str(imgTotal))
     # Read the dicom into a png
     inputDicomImage = dicom.read_file(dicomFolder + filename)
     inputImage[:, :] = inputDicomImage.pixel_array
@@ -124,9 +125,10 @@ for filename in fileList:
 predictedImageArray = np.ndarray((imgTotal, 5, 256, 256, 2), dtype='float32')
 modelInputArray = np.ndarray((1, 5, 256, 256, 1), dtype='float32')
 
+print('Starting predictions')
 for i in range(0, imgTotal, 20):
     # Predicts the location of the aneurysm
-    print("Predicting slice " + str(i))
+    print("Predicting slice " + str(i) + '/' + str(imgTotal))
     modelInputArray[:,:,:,:,:] = npImageArray[i,:,:,:,:]
     predictedImageArray[i,:,:,:,:] = model.predict(modelInputArray)
 
@@ -137,3 +139,4 @@ for i in range(0, imgTotal, 20):
     plt.subplot(133)
     plt.imshow(predictedImageArray[i,2,:,:,1], cmap='gray')
     plt.show()
+
