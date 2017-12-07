@@ -132,6 +132,7 @@ for i in range(0, imgTotal, 20):
     modelInputArray[:,:,:,:,:] = npImageArray[i,:,:,:,:]
     predictedImageArray[i,:,:,:,:] = model.predict(modelInputArray)
 
+    #You should save down the predicted binaries here
     plt.subplot(131)
     plt.imshow(npImageArray[i,2,:,:,0], cmap='gray')
     plt.subplot(132)

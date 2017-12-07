@@ -9,7 +9,43 @@ import numpy as np
 import h5py
 import matplotlib
 import matplotlib.pyplot as plt
+from PIL import Image, ImageEnhance, ImageFilter
 
+def getImagePerimeterPoints(inputImage):
+
+    '''
+    outputImage = np.zeros(shape = (inputImage.shape[0], inputImage.shape[1]))
+    for i in range(inputImage.shape[0]):
+        foundLeftEdge = False
+        foundRightEdge = False
+        for j in range(inputImage.shape[1]):
+            if (foundLeftEdge == False) & inputImage[i,j] != 0:
+                outputImage[i,j] = 1
+                foundLeftEdge = True
+                break
+            if (foundLeftEdge == True) and (foundRightEdge == False) and inputImage[i,j] == 0:
+                outputImage[i, j] = 1
+                foundRightEdge = True
+                break
+
+    for j in range(inputImage.shape[0]):
+        foundTopEdge = False
+        foundBottomEdge = False
+        for i in range(inputImage.shape[1]):
+            if (foundTopEdge == False) & inputImage[i,j] != 0:
+                outputImage[i,j] = 1
+                foundTopEdge = True
+                break
+            if (foundTopEdge == True) and (foundBottomEdge == False) and inputImage[i,j] == 0:
+                outputImage[i, j] = 1
+                foundBottomEdge = True
+                break
+    '''
+    image = Image.fromarray(inputImage)
+    image = image.filter(ImageFilter.FIND_EDGES)
+    outputImage = np.array(image)
+
+    return outputImage
 
 def getImageBoundingBox(inputImage):
     from scipy import ndimage
