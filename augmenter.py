@@ -17,22 +17,23 @@ import sys
 tmpFolder = '/media/sf_sharedFolder/4YP_Python/tmp/'
 
 #Set read and write directories for the images
-innerBinaryReadDir = '/media/sf_sharedFolder/Images/NS/preAugmentation/innerBinary/'
-innerBinaryWriteDir = '/media/sf_sharedFolder/Images/NS/postAugmentation/innerAugmented/'
-outerBinaryReadDir = '/media/sf_sharedFolder/Images/NS/preAugmentation/outerBinary/'
-outerBinaryWriteDir = '/media/sf_sharedFolder/Images/NS/postAugmentation/outerAugmented/'
-dicomReadDir = '/media/sf_sharedFolder/Images/NS/preAugmentation/dicoms/'
-dicomWriteDir = '/media/sf_sharedFolder/Images/NS/postAugmentation/croppedDicoms/'
+innerBinaryReadDir = '/media/sf_sharedFolder/Images/PS/preAugmentation/innerBinary/'
+innerBinaryWriteDir = '/media/sf_sharedFolder/Images/PS/postAugmentation/innerAugmented/'
+outerBinaryReadDir = '/media/sf_sharedFolder/Images/PS/preAugmentation/outerBinary/'
+outerBinaryWriteDir = '/media/sf_sharedFolder/Images/PS/postAugmentation/outerAugmented/'
+dicomReadDir = '/media/sf_sharedFolder/Images/PS/preAugmentation/dicoms/'
+dicomWriteDir = '/media/sf_sharedFolder/Images/PS/postAugmentation/croppedDicoms/'
 
-PatientID = 'NS'
-augmented = True
-counter = 0
+PatientID = 'PS'
+augmented = False
+augNum = 1
+
 
 tmpDicomDir = tmpFolder + 'temporaryDicoms/'
 tmpOuterBinaryDir = tmpFolder + 'temporaryOuterBinaries/'
 tmpInnerBinaryDir = tmpFolder + 'temporaryInnerBinaries/'
 
-augNum = 6
+counter = 0
 for i in range(augNum):
 
     try:
