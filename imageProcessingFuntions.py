@@ -120,12 +120,39 @@ def getFolderCoM(dicomFolder):
 def lukesAugment(image, vin, vout):
     from PIL import Image, ImageStat
     import numpy as np
+
+    def f(x):
+        if (-1 < x) and (x < 67.2753):
+            return 0.27358 * x + 2.0394
+        elif (67.2753 < x) and (x < 91.9528):
+            return 0.54227 * x + -16.0371
+        elif (91.9528 < x) and (x < 114.28):
+            return 1.1654 * x + -73.3365
+        elif (114.28 < x) and (x < 121.9182):
+            return 5.0612 * x + -518.5496
+        elif (121.9182 < x) and (x < 129.5565):
+            return 5.0612 * x + -518.5496
+        elif (129.5565 < x) and (x < 133.6694):
+            return 11.5685 * x + -1361.6108
+        elif (133.6694 < x) and (x < 138.9574):
+            return 4.9206 * x + -472.9932
+        elif (138.9574 < x) and (x < 164.2224):
+            return 1.0593 * x + 63.5641
+        elif (164.2224 < x) and (x < 255.1187):
+            return 0.17367 * x + 209.0087
+
+    f = np.vectorize(f)  # or use a different name if you want to keep the original f
+    image = f(image)
+
+    image = Image.fromarray((image))
+    '''
     currentMean = np.mean(image)
     scale = (vout[1] - vout[0]) / (vin[1] - vin[0])
-
     image = image - currentMean
     image = image*scale
     image = image + currentMean*scale
     image = image - vin[0] + vout[0]
     image = Image.fromarray((image))
+    '''
+
     return image

@@ -14,24 +14,25 @@ from skimage import io
 from skimage import transform as tf
 import sys
 
-tmpFolder = '/media/sf_sharedFolder/4YP_Python/tmp/'
+tmpFolder = '/media/sf_sharedFolder/4YP/4YP_Python/tmp/'
 
 #Set read and write directories for the images
-innerBinaryReadDir = '/media/sf_sharedFolder/Images/PS/preAugmentation/innerBinary/'
-innerBinaryWriteDir = '/media/sf_sharedFolder/Images/PS/postAugmentation/innerAugmented/'
-outerBinaryReadDir = '/media/sf_sharedFolder/Images/PS/preAugmentation/outerBinary/'
-outerBinaryWriteDir = '/media/sf_sharedFolder/Images/PS/postAugmentation/outerAugmented/'
-dicomReadDir = '/media/sf_sharedFolder/Images/PS/preAugmentation/dicoms/'
-dicomWriteDir = '/media/sf_sharedFolder/Images/PS/postAugmentation/croppedDicoms/'
+innerBinaryReadDir = '/media/sf_sharedFolder/4YP/Images/Regent_RR/preAugmentation/innerBinary/'
+innerBinaryWriteDir = '/media/sf_sharedFolder/4YP/Images/Regent_RR/postAugmentation/innerAugmented/'
+outerBinaryReadDir = '/media/sf_sharedFolder/4YP/Images/Regent_RR/preAugmentation/outerBinary/'
+outerBinaryWriteDir = '/media/sf_sharedFolder/4YP/Images/Regent_RR/postAugmentation/outerAugmented/'
+dicomReadDir = '/media/sf_sharedFolder/4YP/Images/Regent_RR/preAugmentation/dicoms/'
+dicomWriteDir = '/media/sf_sharedFolder/4YP/Images/Regent_RR/postAugmentation/croppedDicoms/'
 
-PatientID = 'PS'
+PatientID = 'RR'
 augmented = False
 augNum = 1
-
+randomVals = np.linspace(-0.5, 0.5, augNum)
 
 tmpDicomDir = tmpFolder + 'temporaryDicoms/'
 tmpOuterBinaryDir = tmpFolder + 'temporaryOuterBinaries/'
 tmpInnerBinaryDir = tmpFolder + 'temporaryInnerBinaries/'
+
 
 counter = 0
 for i in range(augNum):
@@ -41,6 +42,8 @@ for i in range(augNum):
     except:
         pass
 
+    while (os.path.exists(tmpFolder)):
+        9-7
     os.mkdir(tmpFolder)
     os.mkdir(tmpDicomDir)
     os.mkdir(tmpOuterBinaryDir)
@@ -52,12 +55,17 @@ for i in range(augNum):
         upper = 255*random()
 
     # Shear adjustment parameters
-    IshearVal = 0.5 * (random() - 0.5)
+
+    index = (np.abs(randomVals + uniform(-0.625, 0.625))).argmin()
+    print str(index)
+    IshearVal = 0.6 * randomVals[index]
+    randomVals = np.delete(randomVals, index)
 
     trueFileNum = 0
 
     fileList = sorted(os.listdir(innerBinaryReadDir))
     #fileList = filter(lambda k: '60' in k, fileList)
+
     for filename in fileList:
 
         dicomImage = np.ndarray([512, 512])
@@ -85,8 +93,8 @@ for i in range(augNum):
         #Read the dicom into a png
         inputDicomImage = dicom.read_file(dicomFilepath)
         dicomImage[:, :] = inputDicomImage.pixel_array
-        misc.imsave('/media/sf_sharedFolder/4YP_Python/tmp/dicomTemp.png', dicomImage)
-        dicomImage = misc.imread('/media/sf_sharedFolder/4YP_Python/tmp/dicomTemp.png')
+        misc.imsave(tmpFolder + 'dicomTemp.png', dicomImage)
+        dicomImage = misc.imread(tmpFolder + 'dicomTemp.png')
         dicomImage = Image.fromarray((dicomImage))
         os.remove(tmpFolder + 'dicomTemp.png')
 
@@ -109,13 +117,12 @@ for i in range(augNum):
             innerBinaryImage = Image.fromarray((innerBinaryImage))
             outerBinaryImage = Image.fromarray((outerBinaryImage))
 
-            # Rotate image
-
-            # Scale image
+            # You could rotate image or scale image
 
         else:
+            #dicomImage.show()
             dicomImage = lukesAugment(dicomImage, [currentLower, currentUpper], [0, 255])
-
+            #dicomImage.show()
         if augmented == True:
             innerBinaryWritename = 'Augment' + '%.2d' % (i+1) + 'InnerBinary' + '%.3d' % trueFileNum + 'Patient' + PatientID + '.png'
             outerBinaryWritename = 'Augment' + '%.2d' % (i+1) + 'OuterBinary' + '%.3d' % trueFileNum + 'Patient' + PatientID + '.png'
