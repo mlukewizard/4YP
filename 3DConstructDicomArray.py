@@ -7,19 +7,18 @@ from scipy import misc
 import math
 from imageProcessingFuntions import *
 
-arrayDirectory = '/home/lukemarkham1383/trainEnvironment/npArrays/training/'
-imageDirectory = '/home/lukemarkham1383/trainEnvironment/Regent_NS/croppedDicoms/'
+arrayDirectory = '/home/lukemarkham1383/trainEnvironment/npArrays/validation/'
+imageDirectory = '/home/lukemarkham1383/trainEnvironment/Regent_RR/croppedDicoms/'
 
-patientID = 'NS'
+patientID = 'RR'
 imageType = 'Original'
+nonAugmentedVersion = True
+binNum = 1
 
 fileList = sorted(os.listdir(imageDirectory))
 imgTotal = len(fileList)
 totalCounter = 0
 maxSliceNum = findLargestNumberInFolder(fileList)
-print(str(maxSliceNum))
-binNum = 1
-nonAugmentedVersion = False
 
 npImageArray = np.ndarray((binNum*maxSliceNum, 5, 256, 256, 1), dtype='float32')
 
@@ -104,7 +103,7 @@ for filename in fileList:
 
     if ((augNum%binNum == 0) or (nonAugmentedVersion == True)) and (sliceNum == maxSliceNum):
 	if (nonAugmentedVersion == True):
-		np.save(arrayDirectory + '3DnonAugment' + 'Patient' + patientID + '_' + imageType + '.npy', npImageArray)
+		np.save(arrayDirectory + '3DNonAugment' + 'Patient' + patientID + '_' + imageType + '.npy', npImageArray)
 	else:
         	np.save(arrayDirectory + '3DAugment' + "%03d" % (augNum-binNum+1) + '-' + "%03d" % (augNum) + 'Patient' + patientID + '_' + imageType + '.npy', npImageArray)
 	print('Saved one at augNum ' + str(augNum))

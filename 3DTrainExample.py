@@ -10,7 +10,13 @@ import os
 import h5py
 from keras import optimizers
 from keras import backend as K
+from random import *
 
+trainingArrayDepth = 200
+augmentationsInTrainingArray = 4
+
+img_train = np.ndarray((trainingArrayDepth, 5, 256, 256, 1), dtype='float32')
+bm_train = np.ndarray((trainingArrayDepth, 5, 256, 256, 2), dtype='float32')
 
 def my_loss(y_true, y_pred):
     smooth = 0
@@ -22,23 +28,31 @@ def my_loss(y_true, y_pred):
 #    return K.mean(K.binary_crossentropy(y_true[:,2,:,:,:], y_pred[:,2,:,:,:], axis=-1)
 
 validationArrayPath = '/home/lukemarkham1383/trainEnvironment/npArrays/validation/'
-trainingArrayDicomPath = '/home/lukemarkham1383/trainEnvironment/npArrays/training/originals/'
-trainingArrayBinaryPath = '/home/lukemarkham1383/trainEnvironment/npArrays/training/binary/'
+trainingArrayPath = '/home/lukemarkham1383/trainEnvironment/npArrays/training/'
 
-img_test_file = '3DnonAugmentPatientRR_Original.npy'
-bm_test_file = '3DNonAugmentPatientRR_InnerBinary.npy'
+img_test_file = '3DNonAugmentPatientRR_Original.npy'
+bm_test_file = '3DNonAugmentPatientRR_Binary.npy'
 img_test = np.load(os.path.join(validationArrayPath, img_test_file))
 bm_test = np.load(os.path.join(validationArrayPath, bm_test_file)) / 255
 
-fileList = sorted(os.listdir(trainingArrayDicomPath))
+fileList = sorted(os.listdir(trainingArrayPath))
+dicomFiles = filter(lambda k: 'Original' in k, fileList)
+binaryFiles = filter(lambda k: 'Binar' in k, fileList)
 for k in range(10): #runs for the len(filelist) * the number in range epochs
-    for filename in fileList:
-	print('Training with file ' + filename)
-        img_measure_file = filename
-        split1 = filename.split('Original')[0]
-        bm_measure_file = split1 + 'Binary.npy'
-        img_train = np.load(os.path.join(trainingArrayDicomPath, img_measure_file))
-        bm_train = np.load(os.path.join(trainingArrayBinaryPath, bm_measure_file)) / 255  # Converting to binary
+    arraySplits = np.random.rand(augmentationsInTrainingArray)
+    arraySplits = np.cumsum(np.round(arraySplits * trainingArrayDepth / sum(arraySplits)))7
+    arraySplits = np.insert(arraySplits, 0, 0)
+    dicomFiles = filter(lambda k: 'Original' in k, fileList)
+    binaryFiles = filter(lambda k: 'Bina' in k, fileList)
+    trainingFiles = np.random.rand(augmentationsInTrainingArray)
+    trainingFiles = np.round(trainingFiles * len(dicomFiles) / sum(trainingFiles))
+    for i in range(augmentationsInTrainingArray):
+	dicomFile = np.load(trainingArrayPath + dicomFiles[trainingFiles[i]])
+	binaryFile = np.load(dicomFile.split("Orig")[0] + 'Binary.npy') / 255
+        for j in range(arraySplits[i+1]-arraySplits[i]):
+	    index = uniform(0, len(dicomFile))
+            img_train[arraySplits[i+j], :, :, :, 0] = dicomFile[index]
+	    bm_train[arraySplits[i+j], :, :, :, :] = binaryFile[index]
 
         testSplit = img_test.shape[0]/(img_test.shape[0]+img_train.shape[0])
 	print('Validation split is ' + str(testSplit))        

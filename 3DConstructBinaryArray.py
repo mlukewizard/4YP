@@ -5,22 +5,21 @@ import matplotlib.pyplot as plt
 import scipy
 from scipy import misc
 import math
+from imageProcessingFuntions import *
 
-#innerImageDirectory = '/home/lukemarkham1383/trainEnvironment/RRValidationData/innerNonAugment/'
-#outerImageDirectory = '/home/lukemarkham1383/trainEnvironment/RRValidationData/outerNonAugment/'
-arrayDirectory = '/home/lukemarkham1383/trainEnvironment/npArrays/'
-innerImageDirectory = '/home/lukemarkham1383/trainEnvironment/NSTrainingData/innerAugmented/'
-outerImageDirectory = '/home/lukemarkham1383/trainEnvironment/NSTrainingData/outerAugmented/'
+arrayDirectory = '/home/lukemarkham1383/trainEnvironment/npArrays/validation/'
+innerImageDirectory = '/home/lukemarkham1383/trainEnvironment/Regent_RR/innerAugmented/'
+outerImageDirectory = '/home/lukemarkham1383/trainEnvironment/Regent_RR/outerAugmented/'
 
-patientID = 'NS'
+patientID = 'RR'
 imageType = 'InnerBinary'
+nonAugmentedVersion = True
+binNum = 1
 
 fileList = sorted(os.listdir(innerImageDirectory))
 imgTotal = len(fileList)
 totalCounter = 0
-maxSliceNum = 310
-binNum = 1
-nonAugmentedVersion = False
+maxSliceNum = findLargestNumberInFolder(fileList)
 
 npImageArray = np.ndarray((binNum*maxSliceNum, 5, 256, 256, 2), dtype='float32')
 
