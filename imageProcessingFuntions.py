@@ -11,6 +11,23 @@ import matplotlib
 import matplotlib.pyplot as plt
 from PIL import Image, ImageEnhance, ImageFilter
 
+def findLargestNumberInFolder(list):
+    def findLargestNumber(text):
+        li = [0]
+        for i in range(len(text)):
+            num = ""
+            if text[i].isdigit():
+                while text[i].isdigit():
+                    num = num + text[i]
+                    i = i + 1
+                li.append(int(num))
+        return max(li)
+    largestNum = 0
+    for i in range(len(list)):
+        if (findLargestNumber(list[i]) > largestNum):
+            largestNum = findLargestNumber(list[i])
+    return largestNum
+
 def getImagePerimeterPoints(inputImage):
 
     '''

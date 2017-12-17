@@ -5,10 +5,10 @@ import matplotlib.pyplot as plt
 import scipy
 from scipy import misc
 import math
+from imageProcessingFuntions import *
 
-#imageDirectory = '/home/lukemarkham1383/trainEnvironment/RRValidationData/croppedDicoms/'
-arrayDirectory = '/home/lukemarkham1383/trainEnvironment/npArrays/'
-imageDirectory = '/home/lukemarkham1383/trainEnvironment/NSTrainingData/croppedDicoms/'
+arrayDirectory = '/home/lukemarkham1383/trainEnvironment/npArrays/training/'
+imageDirectory = '/home/lukemarkham1383/trainEnvironment/Regent_NS/croppedDicoms/'
 
 patientID = 'NS'
 imageType = 'Original'
@@ -16,7 +16,8 @@ imageType = 'Original'
 fileList = sorted(os.listdir(imageDirectory))
 imgTotal = len(fileList)
 totalCounter = 0
-maxSliceNum = 310
+maxSliceNum = findLargestNumberInFolder(fileList)
+print(str(maxSliceNum))
 binNum = 1
 nonAugmentedVersion = False
 
