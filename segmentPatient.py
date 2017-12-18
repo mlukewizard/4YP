@@ -1,4 +1,5 @@
 from __future__ import print_function
+from imageProcessingFuntions import getFolderCoM, lukesAugment, Construct3DDicomArray
 import dicom
 import os, shutil
 import math
@@ -12,14 +13,13 @@ import h5py
 import matplotlib
 import matplotlib.pyplot as plt
 from scipy import ndimage
-from imageProcessingFuntions import getFolderCoM
 import scipy.misc as misc
 from PIL import Image, ImageEnhance
 
-tmpFolder = '/media/sf_sharedFolder/4YP_Python/tmp/'
-dicomFolder = '/media/sf_sharedFolder/Images/NS/preAugmentation/dicoms/'
-model_file = '/media/sf_sharedFolder/Models/28thNov/weights.05-0.04.h5'
-outputPredictions = '/media/sf_sharedFolder/predictions/'
+tmpFolder = '/media/sf_sharedFolder/4YP/4YP_Python/tmp/'
+dicomFolder = '/media/sf_sharedFolder/4YP/Images/GC_Dicoms/'
+model_file = '/media/sf_sharedFolder/4YP/Models/18thDec/weights.05-0.05.h5'
+outputPredictions = '/media/sf_sharedFolder/4YP/predictions/'
 
 try:
     shutil.rmtree(tmpFolder)
@@ -38,7 +38,7 @@ croppedImage = np.ndarray([256, 256], dtype='float32')
 [xMin, xMax, yMin, yMax] = getFolderCoM(dicomFolder)
 
 #This bit makes the folder into a numpy array
-patientID = 'NS'
+patientID = 'GC'
 imageType = 'Original'
 counter = 0
 
@@ -50,77 +50,20 @@ npImageArray = np.ndarray((imgTotal, 5, 256, 256, 1), dtype='float32')
 print('Turning files into numpy arrays')
 for filename in fileList:
     print('Reading file ' + str(counter) + '/' + str(imgTotal))
+    counter = counter + 1
     # Read the dicom into a png
     inputDicomImage = dicom.read_file(dicomFolder + filename)
     inputImage[:, :] = inputDicomImage.pixel_array
-    misc.imsave('/media/sf_sharedFolder/4YP_Python/tmp/dicomTemp.png', inputImage)
-    croppedImage = misc.imread('/media/sf_sharedFolder/4YP_Python/tmp/dicomTemp.png')[yMin:yMax, xMin:xMax]
-    image = Image.fromarray((croppedImage))
-    os.remove(tmpFolder + 'dicomTemp.png')
+    misc.imsave(tmpFolder + filename.split('.')[0] + '.png', inputImage)
+    croppedImage = misc.imread(tmpFolder + filename.split('.')[0] + '.png')[yMin:yMax, xMin:xMax]
+    os.remove(tmpFolder+ filename.split('.')[0] + '.png')
+    croppedImage = Image.fromarray((croppedImage))
+    croppedImage = lukesAugment(croppedImage)
+    croppedImage.convert('RGB').save(tmpFolder + 'Original' + '%.3d' % counter + 'Patient' + patientID + '.png', 'PNG')
 
-    if counter > 3 and counter < imgTotal - 4:
-        #assign to this index
-        npImageArray[counter, 2, :, :, 0] = image
+print('Saved all')
 
-        #assign to previous indexes
-        npImageArray[counter-2, 3, :, :, 0] = image
-        npImageArray[counter-4, 4, :, :, 0] = image
-
-        #assign to future indexes
-        npImageArray[counter+2, 1, :, :, 0] = image
-        npImageArray[counter+4, 0, :, :, 0] = image
-
-    elif counter > 1 and counter < 4: #gets index 2 and 3
-        #assign to this index
-        npImageArray[counter, 2, :, :, 0] = image
-        npImageArray[counter, 1, :, :, 0] = image
-        npImageArray[counter, 0, :, :, 0] = image #this is done for contingency
-
-        #assign to previous indexes
-        npImageArray[counter - 2, 3, :, :, 0] = image
-
-        # assign to future indexes
-        npImageArray[counter + 2, 1, :, :, 0] = image
-        npImageArray[counter + 4, 0, :, :, 0] = image
-
-    elif counter < 2: #gets indexes 0 and 1
-        # assign to this index
-        npImageArray[counter, 2, :, :, 0] = image
-        npImageArray[counter, 1, :, :, 0] = image
-        npImageArray[counter, 0, :, :, 0] = image  # this is necessary
-
-        # assign to future indexes
-        npImageArray[counter + 2, 1, :, :, 0] = image
-        npImageArray[counter + 4, 0, :, :, 0] = image
-
-    elif counter > imgTotal - 5 and counter < imgTotal - 2: #gets indexes imgtotal-3 and imgtotal-4
-        # assign to this index
-        npImageArray[counter, 2, :, :, 0] = image
-        npImageArray[counter, 3, :, :, 0] = image
-        npImageArray[counter, 4, :, :, 0] = image  # this is done for contingency
-
-        # assign to previous indexes
-        npImageArray[counter - 2, 3, :, :, 0] = image
-        npImageArray[counter - 4, 4, :, :, 0] = image
-
-        # assign to future indexes
-        npImageArray[counter + 2, 1, :, :, 0] = image
-
-    elif counter > imgTotal - 3: #gets the end and the one before it
-        #assigns to this index
-        npImageArray[counter, 2, :, :, 0] = image
-        npImageArray[counter, 3, :, :, 0] = image
-        npImageArray[counter, 4, :, :, 0] = image #this is needed
-
-        #assigns to prevous indexes
-        npImageArray[counter - 2, 3, :, :, 0] = image
-        npImageArray[counter - 4, 4, :, :, 0] = image
-
-    counter = counter + 1
-
-#for i in range(imgTotal):
-#    plt.imshow(npImageArray[i, 2, :, :, 0])
-#    plt.show()
+npImageArray = Construct3DDicomArray(tmpFolder, '/media/sf_sharedFolder/4YP/npArrays', patientID, True, 1, True, False)
 
 predictedImageArray = np.ndarray((imgTotal, 5, 256, 256, 2), dtype='float32')
 modelInputArray = np.ndarray((1, 5, 256, 256, 1), dtype='float32')

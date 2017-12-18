@@ -103,8 +103,7 @@ for i in range(augNum):
 
         if augmented == True:
             # Contrast adjustment
-            dicomImage = lukesAugment(dicomImage, [currentLower, currentUpper], [0, upper])
-
+            dicomImage = lukesAugment(dicomImage)
             #Shear adjustment
             afine_tf = tf.AffineTransform(shear=IshearVal)
 
@@ -120,9 +119,9 @@ for i in range(augNum):
             # You could rotate image or scale image
 
         else:
-            #dicomImage.show()
-            dicomImage = lukesAugment(dicomImage, [currentLower, currentUpper], [0, 255])
-            #dicomImage.show()
+            dicomImage.show()
+            dicomImage = lukesAugment(dicomImage)
+            dicomImage.show()
         if augmented == True:
             innerBinaryWritename = 'Augment' + '%.2d' % (i+1) + 'InnerBinary' + '%.3d' % trueFileNum + 'Patient' + PatientID + '.png'
             outerBinaryWritename = 'Augment' + '%.2d' % (i+1) + 'OuterBinary' + '%.3d' % trueFileNum + 'Patient' + PatientID + '.png'

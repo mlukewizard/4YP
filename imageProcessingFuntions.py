@@ -11,6 +11,114 @@ import matplotlib
 import matplotlib.pyplot as plt
 from PIL import Image, ImageEnhance, ImageFilter
 
+def Construct3DDicomArray(imageDirectory, arrayDirectory, patientID, nonAugmentedVersion, binNum, returnArray, saveArray):
+
+    import numpy as np
+    import os
+    import matplotlib
+    import matplotlib.pyplot as plt
+    import scipy
+    from scipy import misc
+    import math
+
+    imageType = 'Original'
+
+    fileList = sorted(os.listdir(imageDirectory))
+    imgTotal = len(fileList)
+    totalCounter = 0
+    maxSliceNum = len(fileList) if len(fileList) < findLargestNumberInFolder(fileList) else findLargestNumberInFolder(fileList)
+
+    npImageArray = np.ndarray((binNum*maxSliceNum, 5, 256, 256, 1), dtype='float32')
+
+    print('Loop starting')
+    for filename in fileList:
+
+        print(filename)
+        split1 = filename.split(imageType)
+        if nonAugmentedVersion == True:
+            split2 = split1[0].split('NonAugment')
+            augNum = 777777777777777
+        elif nonAugmentedVersion == False:
+            split2 = split1[0].split('Augment')
+            augNum = int(split2[1])
+        split3 = split1[1].split('Patient')
+        sliceNum = int(split3[0])
+        if nonAugmentedVersion == False:
+            arrayIndex = int(sliceNum - 1 + (augNum-1-((math.floor((augNum-1)/binNum))*binNum))*maxSliceNum)
+        elif nonAugmentedVersion == True:
+            arrayIndex = totalCounter
+
+        image = misc.imread(imageDirectory + filename, flatten=True)
+
+        if sliceNum > 4 and sliceNum < maxSliceNum - 3:
+            #assign to this index
+            npImageArray[arrayIndex, 2, :, :, 0] = image
+
+            #assign to previous indexes
+            npImageArray[arrayIndex-2, 3, :, :, 0] = image
+            npImageArray[arrayIndex-4, 4, :, :, 0] = image
+
+            #assign to future indexes
+            npImageArray[arrayIndex+2, 1, :, :, 0] = image
+            npImageArray[arrayIndex+4, 0, :, :, 0] = image
+
+        elif sliceNum > 2 and sliceNum < 5: #gets slices 3 and 4
+            #assign to this index
+            npImageArray[arrayIndex, 2, :, :, 0] = image
+            npImageArray[arrayIndex, 1, :, :, 0] = image
+            npImageArray[arrayIndex, 0, :, :, 0] = image #this is done for contingency
+
+            #assign to previous indexes
+            npImageArray[arrayIndex - 2, 3, :, :, 0] = image
+
+            # assign to future indexes
+            npImageArray[arrayIndex + 2, 1, :, :, 0] = image
+            npImageArray[arrayIndex + 4, 0, :, :, 0] = image
+
+        elif sliceNum < 2: #gets slices 1 and 2
+            # assign to this index
+            npImageArray[arrayIndex, 2, :, :, 0] = image
+            npImageArray[arrayIndex, 1, :, :, 0] = image
+            npImageArray[arrayIndex, 0, :, :, 0] = image  # this is necessary
+
+            # assign to future indexes
+            npImageArray[arrayIndex + 2, 1, :, :, 0] = image
+            npImageArray[arrayIndex + 4, 0, :, :, 0] = image
+        elif sliceNum > maxSliceNum - 5 and sliceNum < maxSliceNum - 1: #gets slices which are 3rd and 4th from the end
+            # assign to this index
+            npImageArray[arrayIndex, 2, :, :, 0] = image
+            npImageArray[arrayIndex, 3, :, :, 0] = image
+            npImageArray[arrayIndex, 4, :, :, 0] = image  # this is done for contingency
+
+            # assign to previous indexes
+            npImageArray[arrayIndex - 2, 3, :, :, 0] = image
+            npImageArray[arrayIndex - 4, 4, :, :, 0] = image
+
+            # assign to future indexes
+            npImageArray[arrayIndex + 2, 1, :, :, 0] = image
+
+        elif sliceNum > maxSliceNum - 3: #gets the end and the one before it
+            #assigns to this index
+            npImageArray[arrayIndex, 2, :, :, 0] = image
+            npImageArray[arrayIndex, 3, :, :, 0] = image
+            npImageArray[arrayIndex, 4, :, :, 0] = image #this is needed
+
+            #assigns to prevous indexes
+            npImageArray[arrayIndex - 2, 3, :, :, 0] = image
+            npImageArray[arrayIndex - 4, 4, :, :, 0] = image
+
+        totalCounter = totalCounter + 1
+
+        if ((augNum%binNum == 0) or (nonAugmentedVersion == True)) and (sliceNum == maxSliceNum):
+            if saveArray == True:
+                if (nonAugmentedVersion == True):
+                    np.save(arrayDirectory + '3DNonAugment' + 'Patient' + patientID + '_' + imageType + '.npy', npImageArray)
+                else:
+                    np.save(arrayDirectory + '3DAugment' + "%03d" % (augNum-binNum+1) + '-' + "%03d" % (augNum) + 'Patient' + patientID + '_' + imageType + '.npy', npImageArray)
+            if returnArray == True:
+                return npImageArray
+        print('Saved one at augNum ' + str(augNum))
+
 def findLargestNumberInFolder(list):
     def findLargestNumber(text):
         li = [0]
@@ -134,10 +242,10 @@ def getFolderCoM(dicomFolder):
     return np.array([xMin, xMax, yMin, yMax])
 
 
-def lukesAugment(image, vin, vout):
-    from PIL import Image, ImageStat
+def lukesAugment(image):
+    from PIL import Image, ImageStat, ImageOps
     import numpy as np
-
+    '''
     def f(x):
         if (-1 < x) and (x < 67.2753):
             return 0.27358 * x + 2.0394
@@ -160,16 +268,12 @@ def lukesAugment(image, vin, vout):
 
     f = np.vectorize(f)  # or use a different name if you want to keep the original f
     image = f(image)
+    '''
 
-    image = Image.fromarray((image))
-    '''
-    currentMean = np.mean(image)
-    scale = (vout[1] - vout[0]) / (vin[1] - vin[0])
-    image = image - currentMean
-    image = image*scale
-    image = image + currentMean*scale
-    image = image - vin[0] + vout[0]
-    image = Image.fromarray((image))
-    '''
+    #image = ImageOps.equalize(image)
+    #image = Image.fromarray((image))
+    enhancer = ImageEnhance.Sharpness(image)
+    factor = 1.0
+    enhancer.enhance(factor).show("Sharpness %f" % factor)
 
     return image
