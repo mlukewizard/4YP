@@ -64,7 +64,7 @@ for i in range(augNum):
     trueFileNum = 0
 
     fileList = sorted(os.listdir(innerBinaryReadDir))
-    #fileList = filter(lambda k: '60' in k, fileList)
+    fileList = filter(lambda k: '130' in k, fileList)
 
     for filename in fileList:
 
@@ -119,7 +119,9 @@ for i in range(augNum):
             # You could rotate image or scale image
 
         else:
-            dicomImage.show()
+            image = np.array(dicomImage)
+            plt.imshow(image, cmap='gray')
+            plt.show()
             dicomImage = lukesAugment(dicomImage)
             dicomImage.show()
         if augmented == True:
