@@ -13,20 +13,22 @@ from keras import optimizers
 from keras import backend as K
 from random import *
 
-trainingArrayDepth = 250
-augmentationsInTrainingArray = 3
+trainingArrayDepth = 200 
+augmentationsInTrainingArray = 6
 
 img_measure = np.ndarray((trainingArrayDepth, 5, 256, 256, 1), dtype='float32')
 bm_measure = np.ndarray((trainingArrayDepth, 5, 256, 256, 2), dtype='float32')
 
 def my_loss(y_true, y_pred):
-    smooth = 0
-    y_true_f = K.flatten(y_true[:,2,:,:,:])
-    y_pred_f = K.flatten(y_pred[:,2,:,:,:])
-    intersection = K.sum(y_true_f * y_pred_f)
-    dice_coeff = (2. * intersection + smooth) / (K.sum(y_true_f) + K.sum(y_pred_f) + smooth)
-    return (-1)*dice_coeff
-#    return K.mean(K.binary_crossentropy(y_true[:,2,:,:,:], y_pred[:,2,:,:,:], axis=-1)
+    #smooth = 0
+    #y_true_f = K.flatten(y_true[:,2,:,:,:])
+    #y_pred_f = K.flatten(y_pred[:,2,:,:,:])
+    #intersection = K.sum(y_true_f * y_pred_f)
+    #dice_coeff = (2. * intersection + smooth) / (K.sum(y_true_f) + K.sum(y_pred_f) + smooth)
+    #return (-1)*dice_coeff
+    return K.mean(K.binary_crossentropy(y_true[:,2,:,:,:], y_pred[:,2,:,:,:]))
+
+losses.my_loss = my_loss
 
 validationArrayPath = '/home/lukemarkham1383/trainEnvironment/npArrays/validation/'
 trainingArrayPath = '/home/lukemarkham1383/trainEnvironment/npArrays/training/'
@@ -170,7 +172,8 @@ for k in range(10):
         print('Using model number ' + str(epoch_number))
 
     #model.summary()
-    model.compile(optimizer=Adam(lr=1e-3), loss=losses.binary_crossentropy)
+    #model.compile(optimizer=Adam(lr=1e-3), loss=losses.binary_crossentropy)
+    model.compile(optimizer=Adam(lr=1e-3), loss=my_loss)
     model_check_file = os.path.join(model_folder, 'weights.{epoch:02d}-{loss:.2f}.h5')
     model_checkpoint = ModelCheckpoint(model_check_file, monitor='val_loss', save_best_only=False)
     print('Starting train')
