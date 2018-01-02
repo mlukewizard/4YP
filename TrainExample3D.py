@@ -13,7 +13,7 @@ from keras import optimizers
 from keras import backend as K
 from random import *
 
-trainingArrayDepth = 200 
+trainingArrayDepth = 300 
 augmentationsInTrainingArray = 6
 
 img_measure = np.ndarray((trainingArrayDepth, 5, 256, 256, 1), dtype='float32')
@@ -34,8 +34,8 @@ validationArrayPath = '/home/lukemarkham1383/trainEnvironment/npArrays/validatio
 trainingArrayPath = '/home/lukemarkham1383/trainEnvironment/npArrays/training/'
 model_folder = '/home/lukemarkham1383/trainEnvironment/models/'
 
-img_test_file = '3DNonAugmentPatientRR_Original.npy'
-bm_test_file = '3DNonAugmentPatientRR_Binary.npy'
+img_test_file = '3DNonAugmentPatientNS_Original.npy'
+bm_test_file = '3DNonAugmentPatientNS_Binary.npy'
 img_test = np.load(os.path.join(validationArrayPath, img_test_file))
 bm_test = np.load(os.path.join(validationArrayPath, bm_test_file)) / 255
 
@@ -172,8 +172,8 @@ for k in range(10):
         print('Using model number ' + str(epoch_number))
 
     #model.summary()
-    #model.compile(optimizer=Adam(lr=1e-3), loss=losses.binary_crossentropy)
-    model.compile(optimizer=Adam(lr=1e-3), loss=my_loss)
+    model.compile(optimizer=Adam(lr=1e-3), loss=losses.binary_crossentropy)
+    #model.compile(optimizer=Adam(lr=1e-3), loss=my_loss)
     model_check_file = os.path.join(model_folder, 'weights.{epoch:02d}-{loss:.2f}.h5')
     model_checkpoint = ModelCheckpoint(model_check_file, monitor='val_loss', save_best_only=False)
     print('Starting train')

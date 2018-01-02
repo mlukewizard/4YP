@@ -29,7 +29,6 @@ def Construct3DBinaryArray(innerImageDirectory, outerImageDirectory, arrayDirect
 
     print('Loop starting')
     for filename in fileList:
-        print(filename)
         split1 = filename.split(imageType)
         if nonAugmentedVersion == True:
             split2 = split1[0].split('NonAugment')
@@ -139,8 +138,6 @@ def Construct3DDicomArray(imageDirectory, arrayDirectory, patientID, nonAugmente
 
     print('Loop starting')
     for filename in fileList:
-
-        print(filename)
         split1 = filename.split(imageType)
         if nonAugmentedVersion == True:
             split2 = split1[0].split('NonAugment')
@@ -222,9 +219,10 @@ def Construct3DDicomArray(imageDirectory, arrayDirectory, patientID, nonAugmente
                     np.save(arrayDirectory + '3DNonAugment' + 'Patient' + patientID + '_' + imageType + '.npy', npImageArray)
                 else:
                     np.save(arrayDirectory + '3DAugment' + "%03d" % (augNum-binNum+1) + '-' + "%03d" % (augNum) + 'Patient' + patientID + '_' + imageType + '.npy', npImageArray)
+	        print('Saved one at augNum ' + str(augNum))
             if returnArray == True:
                 return npImageArray
-        print('Saved one at augNum ' + str(augNum))
+        
 
 def findLargestNumberInFolder(list):
     def findLargestNumber(text):
