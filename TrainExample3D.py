@@ -13,8 +13,9 @@ from keras import optimizers
 from keras import backend as K
 from random import *
 
-trainingArrayDepth = 300 
-augmentationsInTrainingArray = 6
+patientList = ['RR', 'DC']
+trainingArrayDepth = 200 
+augmentationsInTrainingArray = len(patientList)
 
 img_measure = np.ndarray((trainingArrayDepth, 5, 256, 256, 1), dtype='float32')
 bm_measure = np.ndarray((trainingArrayDepth, 5, 256, 256, 2), dtype='float32')
@@ -54,10 +55,13 @@ for k in range(10):
     #print(arraySplits)  
 
     for i in range(len(arraySplits)-1):
-	shuffle(dicomFileList)
-	print('Using data from ' + dicomFileList[0])
-	dicomFile = np.load(trainingArrayPath + dicomFileList[0])
-	binaryFile = np.load(trainingArrayPath + dicomFileList[0].split("Orig")[0] + 'Binary.npy') / 255
+	patientFile = 'RandomString'
+	while patientFile.find(patientList[i]) == -1:
+		shuffle(dicomFileList)
+		patientFile = dicomFileList[0]
+	print('Using data from ' + patientFile)
+	dicomFile = np.load(trainingArrayPath + patientFile)
+	binaryFile = np.load(trainingArrayPath + patientFile.split("Orig")[0] + 'Binary.npy') / 255
 	#print('Printing for ' + str(arraySplits[i+1]-arraySplits[i]))
         for j in range(arraySplits[i+1]-arraySplits[i]):
             index = int(np.round(uniform(0, len(dicomFile)-1)))
