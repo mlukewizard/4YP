@@ -13,8 +13,8 @@ from keras import optimizers
 from keras import backend as K
 from random import *
 
-patientList = ['RR', 'DC']
-trainingArrayDepth = 200 
+patientList = ['PS', 'PB', 'RR', 'DC']
+trainingArrayDepth = 300 
 augmentationsInTrainingArray = len(patientList)
 
 img_measure = np.ndarray((trainingArrayDepth, 5, 256, 256, 1), dtype='float32')
@@ -107,36 +107,36 @@ for k in range(10):
 
         conv3 = TimeDistributed(BatchNormalization())(pool2)
         conv3 = TimeDistributed(Conv2D(128, (3, 3), activation='relu', padding='same'))(conv3)
-        conv3 = TimeDistributed(BatchNormalization())(conv3)
-        conv3 = TimeDistributed(Dropout(0.5))(conv3)
-        conv3 = TimeDistributed(Conv2D(128, (3, 3), activation='relu', padding='same'))(conv3)
+        #conv3 = TimeDistributed(BatchNormalization())(conv3)
+        #conv3 = TimeDistributed(Dropout(0.5))(conv3)
+        #conv3 = TimeDistributed(Conv2D(128, (3, 3), activation='relu', padding='same'))(conv3)
         pool3 = TimeDistributed(MaxPooling2D(pool_size=(2, 2)))(conv3)
 
-        #conv4 = TimeDistributed(BatchNormalization())(pool3)
-        #conv4 = TimeDistributed(Conv2D(256, (3, 3), activation='relu', padding='same'))(conv4)
+        conv4 = TimeDistributed(BatchNormalization())(pool3)
+        conv4 = TimeDistributed(Conv2D(256, (3, 3), activation='relu', padding='same'))(conv4)
         #conv4 = TimeDistributed(BatchNormalization())(conv4)
         #conv4 = TimeDistributed(Dropout(0.5))(conv4)
         #conv4 = TimeDistributed(Conv2D(256, (3, 3), activation='relu', padding='same'))(conv4)
-        #pool4 = TimeDistributed(MaxPooling2D(pool_size=(2, 2)))(conv4)
+        pool4 = TimeDistributed(MaxPooling2D(pool_size=(2, 2)))(conv4)
 
-        #myLSTM = Bidirectional(ConvLSTM2D(512, (3, 3), activation='relu', padding='same', return_sequences=True))(pool4)
+        myLSTM = Bidirectional(ConvLSTM2D(512, (3, 3), activation='relu', padding='same', return_sequences=True))(pool4)
 
-        myLSTM = Bidirectional(ConvLSTM2D(256, (3, 3), activation='relu', padding='same', return_sequences=True))(pool3)
+        #myLSTM = Bidirectional(ConvLSTM2D(256, (3, 3), activation='relu', padding='same', return_sequences=True))(pool3)
 
-        #up6 = concatenate([TimeDistributed(UpSampling2D(size=(2, 2)))(myLSTM), conv4], axis=4)
-        #conv6 = TimeDistributed(BatchNormalization())(up6)
-        #conv6 = TimeDistributed(Conv2D(256, (3, 3), activation='relu', padding='same'))(conv6)
+        up6 = concatenate([TimeDistributed(UpSampling2D(size=(2, 2)))(myLSTM), conv4], axis=4)
+        conv6 = TimeDistributed(BatchNormalization())(up6)
+        conv6 = TimeDistributed(Conv2D(256, (3, 3), activation='relu', padding='same'))(conv6)
         #conv6 = TimeDistributed(BatchNormalization())(conv6)
         #conv6 = TimeDistributed(Dropout(0.5))(conv6)
         #conv6 = TimeDistributed(Conv2D(256, (3, 3), activation='relu', padding='same'))(conv6)
 
-        #up7 = concatenate([TimeDistributed(UpSampling2D(size=(2, 2)))(conv6), conv3], axis=4)
-        up7 = concatenate([TimeDistributed(UpSampling2D(size=(2, 2)))(myLSTM), conv3], axis=4)
+        up7 = concatenate([TimeDistributed(UpSampling2D(size=(2, 2)))(conv6), conv3], axis=4)
+        #up7 = concatenate([TimeDistributed(UpSampling2D(size=(2, 2)))(myLSTM), conv3], axis=4)
         conv7 = TimeDistributed(BatchNormalization())(up7)
         conv7 = TimeDistributed(Conv2D(128, (3, 3), activation='relu', padding='same'))(conv7)
-        conv7 = TimeDistributed(BatchNormalization())(conv7)
-        conv7 = TimeDistributed(Dropout(0.5))(conv7)
-        conv7 = TimeDistributed(Conv2D(128, (3, 3), activation='relu', padding='same'))(conv7)
+        #conv7 = TimeDistributed(BatchNormalization())(conv7)
+        #conv7 = TimeDistributed(Dropout(0.5))(conv7)
+        #conv7 = TimeDistributed(Conv2D(128, (3, 3), activation='relu', padding='same'))(conv7)
 
         up8 = concatenate([TimeDistributed(UpSampling2D(size=(2, 2)))(conv7), conv2], axis=4)
         conv8 = TimeDistributed(BatchNormalization())(up8)
@@ -181,6 +181,6 @@ for k in range(10):
     model_check_file = os.path.join(model_folder, 'weights.{epoch:02d}-{loss:.2f}.h5')
     model_checkpoint = ModelCheckpoint(model_check_file, monitor='val_loss', save_best_only=False)
     print('Starting train')
-    model.fit(img_train, bm_train, batch_size=4, initial_epoch=epoch_number, epochs=epoch_number + 1,
+    model.fit(img_train, bm_train, batch_size=2, initial_epoch=epoch_number, epochs=epoch_number + 1,
                             verbose=1, shuffle=True, validation_split=testSplit,
                             callbacks=[model_checkpoint])
