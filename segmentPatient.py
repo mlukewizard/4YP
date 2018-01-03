@@ -16,9 +16,9 @@ from scipy import ndimage
 import scipy.misc as misc
 from PIL import Image, ImageEnhance
 
-patientID = 'NS'
+patientID = 'MH'
 tmpFolder = '/media/sf_sharedFolder/4YP/4YP_Python/tmp/'
-dicomFolder = '/media/sf_sharedFolder/4YP/Images/NS_dicoms/'
+dicomFolder = '/media/sf_sharedFolder/4YP/Images/' + patientID + '_dicoms/'
 model_file = '/media/sf_sharedFolder/4YP/Models/2ndJan/weights.04-0.11.h5'
 outputPredictions = '/media/sf_sharedFolder/4YP/predictions/'
 modelTestArrayDir = '/media/sf_sharedFolder/4YP/npArrays/modelTestArray/'
@@ -32,7 +32,12 @@ os.mkdir(tmpFolder)
 #Loads the model
 model = load_model(model_file)
 
-if len(sorted(os.listdir(modelTestArrayDir))) > 0:
+gotArray = False
+for filename in sorted(os.listdir(modelTestArrayDir)):
+    if filename.find(patientID) != -1:
+        gotArray = True
+
+if gotArray == True:
     print('Using already defined test array')
     fileList = sorted(os.listdir(modelTestArrayDir))
     modelTestArrayFile = fileList[0]
@@ -73,13 +78,13 @@ else:
 
     print('Saved all')
     modelTestArray = Construct3DDicomArray(tmpFolder, '/media/sf_sharedFolder/4YP/npArrays', patientID, True, 1, True, False)
-    np.save(modelTestArrayDir + 'TestArray.npy', modelTestArray)
+    np.save(modelTestArrayDir + patientID + 'TestArray.npy', modelTestArray)
 
 predictedImageArray = np.ndarray((imgTotal, 5, 256, 256, 2), dtype='float32')
 modelInputArray = np.ndarray((1, 5, 256, 256, 1), dtype='float32')
 
 print('Starting predictions')
-for k in range(40, imgTotal, 20):
+for k in range(300, imgTotal, 20):
     # Predicts the location of the aneurysm
     print("Predicting slice " + str(k) + '/' + str(imgTotal))
     modelInputArray[:,:,:,:,:] = modelTestArray[k,:,:,:,:]
@@ -117,4 +122,3 @@ for k in range(40, imgTotal, 20):
     plt.subplot(3, 5, 15)
     plt.imshow(predictedImageArray[k, 4, :, :, 1], cmap='gray')
     plt.show()
-
