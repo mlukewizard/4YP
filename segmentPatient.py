@@ -19,7 +19,7 @@ from PIL import Image, ImageEnhance
 patientID = 'MH'
 tmpFolder = '/media/sf_sharedFolder/4YP/4YP_Python/tmp/'
 dicomFolder = '/media/sf_sharedFolder/4YP/Images/' + patientID + '_dicoms/'
-model_file = '/media/sf_sharedFolder/4YP/Models/2ndJan/weights.04-0.11.h5'
+model_file = '/media/sf_sharedFolder/4YP/Models/3rdJan/weights.03-0.05.h5'
 outputPredictions = '/media/sf_sharedFolder/4YP/predictions/'
 modelTestArrayDir = '/media/sf_sharedFolder/4YP/npArrays/modelTestArray/'
 
