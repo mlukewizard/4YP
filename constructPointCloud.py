@@ -1,84 +1,66 @@
-import os, shutil
+import os
 import csv
-import math
 import numpy as np
-import matplotlib
-import matplotlib.pyplot as plt
-from scipy import ndimage
-from imageProcessingFuntions import getFolderCoM, getImagePerimeterPoints
+from myFunctions import *
 import scipy.misc as misc
-from PIL import Image, ImageEnhance, ImageFilter
-from plyfile import PlyData, PlyElement
-from mpl_toolkits.mplot3d import Axes3D
+from scipy import ndimage
+import copy
+
 
 patientList = ['NS', 'DC', 'PB', 'PS', 'RR']
 for PatientID in patientList:
     print('Extracting patient ' + PatientID)
-    innerBinaryDir = '/media/sf_sharedFolder/4YP/Images/Regent_'+PatientID+'/preAugmentation/innerBinary/'
-    CSVWriteDir = '/media/sf_sharedFolder/4YP/pointClouds/Regent_'+PatientID+'/'
+    innerBinaryDir = 'C:\\Users\\Luke\\Documents\\sharedFolder\\4YP\\Images\\Regent_'+PatientID+'\\preAugmentation\\innerBinary\\'
+    CSVWriteDir = 'C:\\Users\\Luke\\Documents\\sharedFolder\\4YP\\pointClouds\\Regent_'+PatientID+'\\'
     if not os.path.exists(CSVWriteDir):
             os.mkdir(CSVWriteDir)
-    outerBinaryDir = '/media/sf_sharedFolder/4YP/Images/Regent_'+PatientID+'/preAugmentation/outerBinary/'
+    outerBinaryDir = 'C:\\Users\\Luke\\Documents\\sharedFolder\\4YP\\Images\\Regent_'+PatientID+'\\preAugmentation\\outerBinary\\'
 
-    #Extract the points for the inner aorta
-    fileList = sorted(os.listdir(innerBinaryDir))
-    height = len(fileList)
-    sampleImage = misc.imread(innerBinaryDir + fileList[0])
-    innerPointCloud = np.ndarray([height, (sampleImage.shape)[0], (sampleImage.shape)[1]])
-    imageHolder = np.ndarray([(sampleImage.shape)[0], (sampleImage.shape)[1]])
+    # Extract the points of the aorta
+    innerFileList = sorted(os.listdir(innerBinaryDir))
+    outerFileList = sorted(os.listdir(outerBinaryDir))
+    height = len(innerFileList)
+    sampleImage = misc.imread(innerBinaryDir + innerFileList[0])
+    innerPointCloud = np.zeros([height, sampleImage.shape[0], sampleImage.shape[1]], dtype=np.dtype(bool))
+    innerImageHolder = np.zeros([sampleImage.shape[0], sampleImage.shape[1]], dtype=np.dtype(bool))
+    outerPointCloud = np.zeros([height, sampleImage.shape[0], sampleImage.shape[1]], dtype=np.dtype(bool))
+    outerImageHolder = np.zeros([sampleImage.shape[0], sampleImage.shape[1]], dtype=np.dtype(bool))
+    adjustedOuterImageHolder = np.zeros([sampleImage.shape[0], sampleImage.shape[1]], dtype=np.dtype(bool))
+
     fileNum = -1
-
-    for filename in fileList:
+    innerPoint = np.zeros([2,1])
+    for innerFileName in innerFileList:
         fileNum = fileNum + 1
-        image = misc.imread(innerBinaryDir + filename)
-        imageHolder = getImagePerimeterPoints(image)
+        outerFileName = outerFileList[fileNum]
+        innerImage = misc.imread(innerBinaryDir + innerFileName)
+        innerImageHolder = getImagePerimeterPoints(innerImage)
+        outerImage = misc.imread(outerBinaryDir + outerFileName)
+        outerImageHolder = getImagePerimeterPoints(outerImage)
+        outerPoints = np.array(np.where(np.isin(outerImageHolder, 1)))
+        innerPoints = np.array(np.where(np.isin(innerImageHolder, 1)))
 
-        innerPointCloud[fileNum, :, :] = imageHolder
+        for i in range(innerPoints.shape[1]):
+            newOuterPoints = copy.deepcopy(outerPoints)
+            innerPoint[0, 0] = innerPoints[0, i]
+            innerPoint[1, 0] = innerPoints[1, i]
+            #innerPoint[0, 1] = innerPoints[1, i]
+            newOuterPoints = newOuterPoints - innerPoint
+            distances = np.square(newOuterPoints[0,:]) + np.square(newOuterPoints[1,:])
+            closestIndex = distances.index(min(distances))
+            adjustedOuterImageHolder[outerPoints[0, closestIndex], outerPoints[1, closestIndex]] = 1
+        innerPointCloud[fileNum, :, :] = innerImageHolder
+        outerPointCloud[fileNum, :, :] = adjustedOuterImageHolder
         print('Completed ' + str(fileNum) + ' of ' + str(height))
 
-    #extract the points for the outer aorta
-    fileList = sorted(os.listdir(outerBinaryDir))
-    height = len(fileList)
-    sampleImage = misc.imread(outerBinaryDir + fileList[0])
-    outerPointCloud = np.ndarray([height, (sampleImage.shape)[0], (sampleImage.shape)[1]])
-    imageHolder = np.ndarray([(sampleImage.shape)[0], (sampleImage.shape)[1]])
-    fileNum = -1
+    pointClouds = [innerPointCloud, outerPointCloud]
+    wallTypes = ['Inner', 'Outer']
+    for pointCloud, wallType in zip(pointClouds, wallTypes):
 
-    for filename in fileList:
-        fileNum = fileNum + 1
-        image = misc.imread(outerBinaryDir + filename)
-        imageHolder = getImagePerimeterPoints(image)
-
-        outerPointCloud[fileNum, :, :] = imageHolder
-        print('Completed ' + str(fileNum) + ' of ' + str(height))
-
-    #Write innerPointCloud
-    with open(CSVWriteDir + PatientID + 'Inner' + 'PointCloud' + '.csv','wb') as myfile:
-        filewriter = csv.writer(myfile, delimiter=',',
-                                quotechar='|', quoting=csv.QUOTE_MINIMAL)
-        filewriter.writerow(['X', 'Y', 'Z'])
-        for i in range(innerPointCloud.shape[0]):
-            for j in range(innerPointCloud.shape[1]):
-                for k in range(innerPointCloud.shape[2]):
-                    if innerPointCloud[i,j,k] > 0:
-                        filewriter.writerow([j, k, i])
-    myfile.close()
-
-    #Write outerPointCloud
-    with open(CSVWriteDir + PatientID + 'Outer' + 'PointCloud' + '.csv','wb') as myfile:
-        filewriter = csv.writer(myfile, delimiter=',',
-                                quotechar='|', quoting=csv.QUOTE_MINIMAL)
-        filewriter.writerow(['X', 'Y', 'Z'])
-        for i in range(outerPointCloud.shape[0]):
-            for j in range(outerPointCloud.shape[1]):
-                for k in range(outerPointCloud.shape[2]):
-                    if outerPointCloud[i,j,k] > 0:
-                       filewriter.writerow([j, k, i])
-    myfile.close()
-
-
-    #plt.figure()
-    #z,x,y = innerPointCloud.nonzero()
-    #ax = plt.subplot(111, projection='3d')
-    #ax.scatter(x, y, -z, zdir = 'z', c = 'red')
-    #plt.show()
+        with open(CSVWriteDir + PatientID + wallType + 'PointCloud' + '.csv','wb') as myfile:
+            filewriter = csv.writer(myfile, delimiter=',',
+                                    quotechar='|', quoting=csv.QUOTE_MINIMAL)
+            filewriter.writerow(['X', 'Y', 'Z'])
+            pointCloud = np.array(np.where(np.isin(pointCloud, 1)))
+            for z, y, x in zip(pointCloud[0,:], pointCloud[1,:], pointCloud[2,:]):
+                filewriter.writerow([x, y, z])
+        myfile.close()
