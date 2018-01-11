@@ -15,6 +15,20 @@ from scipy import misc
 import math
 import os
 
+def isDoubleAAA(image):
+    OuterTop = np.array(np.where(np.isin(image, 255)))[:, 0]
+    OuterBottom = np.array(np.where(np.isin(image, 255)))[:, -1]
+    continueLoop = True
+    while continueLoop:
+        x = (OuterTop - OuterBottom)/np.max(abs((OuterBottom - OuterTop)))
+        if image[OuterBottom[0] + int(x[0]), OuterBottom[1] + int(x[1])] == 255 or image[OuterBottom[0] + 2*int(x[0]), OuterBottom[1] + 2*int(x[1])] == 255 or image[OuterBottom[0] + 5*int(x[0]), OuterBottom[1] + 5*int(x[1])] == 255:
+            OuterBottom[0] = OuterBottom[0] + int(x[0])
+            OuterBottom[1] = OuterBottom[1] + int(x[1])
+        else:
+            return True
+        if np.square(OuterTop[0] - OuterBottom[0]) + np.square(OuterTop[1] - OuterBottom[1]) < 200:
+            return False
+
 
 def Construct3DBinaryArray(innerImageDirectory, outerImageDirectory, arrayDirectory, patientID, nonAugmentedVersion, binNum, returnArray, saveArray):
 
@@ -242,39 +256,9 @@ def findLargestNumberInFolder(list):
     return largestNum
 
 def getImagePerimeterPoints(inputImage):
-
-    '''
-    outputImage = np.zeros(shape = (inputImage.shape[0], inputImage.shape[1]))
-    for i in range(inputImage.shape[0]):
-        foundLeftEdge = False
-        foundRightEdge = False
-        for j in range(inputImage.shape[1]):
-            if (foundLeftEdge == False) & inputImage[i,j] != 0:
-                outputImage[i,j] = 1
-                foundLeftEdge = True
-                break
-            if (foundLeftEdge == True) and (foundRightEdge == False) and inputImage[i,j] == 0:
-                outputImage[i, j] = 1
-                foundRightEdge = True
-                break
-
-    for j in range(inputImage.shape[0]):
-        foundTopEdge = False
-        foundBottomEdge = False
-        for i in range(inputImage.shape[1]):
-            if (foundTopEdge == False) & inputImage[i,j] != 0:
-                outputImage[i,j] = 1
-                foundTopEdge = True
-                break
-            if (foundTopEdge == True) and (foundBottomEdge == False) and inputImage[i,j] == 0:
-                outputImage[i, j] = 1
-                foundBottomEdge = True
-                break
-    '''
     image = Image.fromarray(inputImage)
     image = image.filter(ImageFilter.FIND_EDGES)
     outputImage = np.array(image)
-
     return outputImage
 
 def getImageBoundingBox(inputImage):

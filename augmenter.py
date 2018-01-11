@@ -1,7 +1,7 @@
 from __future__ import division
 from random import *
 import numpy as np
-from imageProcessingFuntions import *
+from myFunctions import *
 import os, shutil
 import scipy
 import scipy.misc as misc
