@@ -14,6 +14,47 @@ import scipy
 from scipy import misc
 import math
 import os
+import copy
+
+def calc3DTortuosity(centreLine, windowLength):
+    centreLineTortuosity = np.ndarray([len(centreLine)])
+    halfWindow = int(math.floor(windowLength/2))
+    paddedCentreLine = np.pad(centreLine, halfWindow, 'edge')[halfWindow:-halfWindow, :]
+    for i in range(len(centreLine)):
+        evalPoint = i + halfWindow
+        absoluteDistance = np.sqrt(np.square(paddedCentreLine[0, evalPoint+halfWindow] - paddedCentreLine[0, evalPoint-halfWindow]) +
+            np.square(paddedCentreLine[1, evalPoint + halfWindow] - paddedCentreLine[1, evalPoint - halfWindow]) +
+            np.square(paddedCentreLine[2, evalPoint + halfWindow] - paddedCentreLine[2, evalPoint - halfWindow]))
+        curveDistance = 0
+        for j in range(windowLength-1):
+            curveDistance = curveDistance + np.sqrt(np.square(paddedCentreLine[0, i+j+1] - paddedCentreLine[0, i+j]) +
+                                                    np.square(paddedCentreLine[1, i+j+1] - paddedCentreLine[1, i+j]) +
+                                                    np.square(paddedCentreLine[2, i+j+1] - paddedCentreLine[2, i+j]))
+        tortuosity = curveDistance / absoluteDistance
+        centreLineTortuosity[i] = tortuosity
+
+def findAAABounds(wallVolume, OuterDiameter):
+    maxDia = len(OuterDiameter[0:-100]) + np.argmax(OuterDiameter[-100:])
+    maxVol = len(wallVolume[0:-100]) + np.argmax(wallVolume[-100:])
+    acceptableSteps = np.linspace(1, 50, 50, dtype='int').tolist()
+    timeSerieses = [wallVolume, OuterDiameter, wallVolume, OuterDiameter]
+    directions = [-1, -1, 1, 1]
+    points = []
+    maxLocations = [maxVol, maxDia, maxVol, maxDia]
+    for timeSeries, direction, start in zip(timeSerieses, directions, maxLocations):
+        looking = True
+        copyStart = copy.deepcopy(start)
+        while looking:
+            if any((np.append(timeSeries, np.zeros(60, dtype = 'int'))[copyStart + direction*step] - np.append(timeSeries, np.zeros(60, dtype = 'int'))[copyStart])/step < -np.max(timeSeries)/200 for step in acceptableSteps):
+                copyStart = copyStart + direction
+            else:
+                looking = False
+        points.append(copyStart)
+    if abs(points[3] - points[2]) > 10:
+        print('Warning: Your algorithm is unsure about where the aneurysm ends, wall thickness suggests ' + str(points[2]) + ' and diameter suggests ' + str(points[3]))
+    if abs(points[1] - points[0]) > 10:
+        print('Warning: Your algorithm is unsure about where the aneurysm starts, wall thickness suggests ' + str(points[0]) + ' and diameter suggests ' + str(points[1]))
+    return [int((points[0] + points[1])/2), int((points[2] + points[3])/2)]
 
 def isDoubleAAA(image):
     OuterTop = np.array(np.where(np.isin(image, 255)))[:, 0]

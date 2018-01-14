@@ -11,7 +11,7 @@ patientList = ['NS', 'DC', 'PB', 'PS', 'RR']
 for PatientID in patientList:
     print('Extracting patient ' + PatientID)
 
-    #Defines the file paths
+    # Defines the file paths
     innerBinaryDir = 'C:\\Users\\Luke\\Documents\\sharedFolder\\4YP\\Images\\Regent_'+PatientID+'\\preAugmentation\\innerBinary\\'
     CSVWriteDir = 'C:\\Users\\Luke\\Documents\\sharedFolder\\4YP\\pointClouds\\Regent_'+PatientID+'\\'
     if not os.path.exists(CSVWriteDir):
