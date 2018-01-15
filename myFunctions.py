@@ -16,11 +16,49 @@ import math
 import os
 import copy
 
+def calcPerimeter(image):
+    image = shell(image)
+    whitePoints = np.array(np.where(np.isin(image, 255)))
+    perimeter = 0
+    continueSumming = True
+    currentPoint = np.zeros([2, 1], dtype='int')
+    currentPoint[0] = np.where(np.isin(image, 255))[0][0]
+    currentPoint[1] = np.where(np.isin(image, 255))[1][0]
+    while continueSumming:
+        whitePoints = whitePoints - currentPoint
+        distances = np.sqrt(np.square(whitePoints[0, :]) + np.square(whitePoints[1, :]))
+        closestIndex = np.argmin(distances)
+        perimeter = perimeter + min(distances)
+        currentPoint[0] = whitePoints[0][closestIndex]
+        currentPoint[1] = whitePoints[1][closestIndex]
+        whitePoints = np.delete(whitePoints, closestIndex, 1)
+        if len(whitePoints[0]) == 0:
+            continueSumming = False
+    return perimeter
+
+def shell(image):
+    image2 = getImagePerimeterPoints(image)
+    xPoints = np.where(np.isin(image, 255))[0]
+    yPoints = np.where(np.isin(image, 255))[1]
+    for i, j in zip(xPoints, yPoints):
+        conditionList = [image2[i, j-1] != 0, image2[i+1, j] != 0, image2[i, j+1] != 0, image2[i-1, j] != 0]
+        if sum(conditionList) > 1:
+            image2[i, j] = 0
+    return image2
+
+def calcSegmentLength(line):
+    length = 0
+    for j in range(line.shape[1]-1):
+        length = length + np.sqrt(np.square(line[0, j+1] - line[0, j]) +
+                        np.square(line[1, j+1] - line[1, j]) +
+                        np.square(line[2, j+1] - line[2, j]))
+    return length
+
 def calc3DTortuosity(centreLine, windowLength):
-    centreLineTortuosity = np.ndarray([len(centreLine)])
+    centreLineTortuosity = np.ndarray([centreLine.shape[1]])
     halfWindow = int(math.floor(windowLength/2))
     paddedCentreLine = np.pad(centreLine, halfWindow, 'edge')[halfWindow:-halfWindow, :]
-    for i in range(len(centreLine)):
+    for i in range(centreLine.shape[1]):
         evalPoint = i + halfWindow
         absoluteDistance = np.sqrt(np.square(paddedCentreLine[0, evalPoint+halfWindow] - paddedCentreLine[0, evalPoint-halfWindow]) +
             np.square(paddedCentreLine[1, evalPoint + halfWindow] - paddedCentreLine[1, evalPoint - halfWindow]) +
@@ -32,6 +70,7 @@ def calc3DTortuosity(centreLine, windowLength):
                                                     np.square(paddedCentreLine[2, i+j+1] - paddedCentreLine[2, i+j]))
         tortuosity = curveDistance / absoluteDistance
         centreLineTortuosity[i] = tortuosity
+    return centreLineTortuosity
 
 def findAAABounds(wallVolume, OuterDiameter):
     maxDia = len(OuterDiameter[0:-100]) + np.argmax(OuterDiameter[-100:])
@@ -45,7 +84,7 @@ def findAAABounds(wallVolume, OuterDiameter):
         looking = True
         copyStart = copy.deepcopy(start)
         while looking:
-            if any((np.append(timeSeries, np.zeros(60, dtype = 'int'))[copyStart + direction*step] - np.append(timeSeries, np.zeros(60, dtype = 'int'))[copyStart])/step < -np.max(timeSeries)/200 for step in acceptableSteps):
+            if any(((np.append(timeSeries, np.zeros(60, dtype = 'int'))[copyStart + direction*step] - np.append(timeSeries, np.zeros(60, dtype = 'int'))[copyStart])/step < -np.max(timeSeries)/200 and np.append(timeSeries, np.zeros(60, dtype = 'int'))[copyStart + direction*step] != 0) for step in acceptableSteps):
                 copyStart = copyStart + direction
             else:
                 looking = False
