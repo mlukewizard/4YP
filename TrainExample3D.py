@@ -21,12 +21,6 @@ img_measure = np.ndarray((trainingArrayDepth, 5, 256, 256, 1), dtype='float32')
 bm_measure = np.ndarray((trainingArrayDepth, 5, 256, 256, 2), dtype='float32')
 
 def my_loss(y_true, y_pred):
-    #smooth = 0
-    #y_true_f = K.flatten(y_true[:,2,:,:,:])
-    #y_pred_f = K.flatten(y_pred[:,2,:,:,:])
-    #intersection = K.sum(y_true_f * y_pred_f)
-    #dice_coeff = (2. * intersection + smooth) / (K.sum(y_true_f) + K.sum(y_pred_f) + smooth)
-    #return (-1)*dice_coeff
     return K.mean(K.binary_crossentropy(y_true[:,2,:,:,:], y_pred[:,2,:,:,:]))
 
 losses.my_loss = my_loss
@@ -40,19 +34,13 @@ bm_test_file = '3DNonAugmentPatientNS_Binary.npy'
 img_test = np.load(os.path.join(validationArrayPath, img_test_file))
 bm_test = np.load(os.path.join(validationArrayPath, bm_test_file)) / 255
 
+arraySplits = np.linspace(0, trainingArrayDepth, len(patientList)+1, dtype = 'int')
+
 fileList = sorted(os.listdir(trainingArrayPath))
 dicomFileList = filter(lambda k: 'Original' in k, fileList)
 binaryFileList = filter(lambda k: 'Binar' in k, fileList)
 for k in range(10):
-    print('Constructing Arrays')
-
-    arraySplits = np.zeros(augmentationsInTrainingArray)
-    for i in range(augmentationsInTrainingArray):
-    	arraySplits[i] = uniform(0.2, 1)
-    arraySplits = np.cumsum(np.round(arraySplits * trainingArrayDepth / sum(arraySplits)))
-    arraySplits = np.insert(arraySplits, 0, 0).astype(int)
-    #arraySplits[-1] = trainingArrayDepth - 1
-    #print(arraySplits)  
+    print('Constructing Arrays')  
 
     for i in range(len(arraySplits)-1):
 	patientFile = 'RandomString'
