@@ -35,7 +35,7 @@ for myPatientID, myNonAugmentedVersion in zip(patientList, augmentedList):
             workingFileList = fileList
         for j in range(maxSliceNum):
             npImageArray[j, :, :, :, :] = ConstructArraySlice(workingFileList, myImageDirectory, None, None, j, None, boxSize)
-            saveSlice(npImageArray[j, :, :, :, :])
+            #saveSlice(npImageArray[j, :, :, :, :], None)
 
         # Saves down the numpy array
         if myNonAugmentedVersion:

@@ -137,7 +137,6 @@ def ConstructArraySlice(inputFolder1, inputFolder1Dir, inputFolder2, inputFolder
         elif arrayIndexes[i] > len(inputFolder1)-1:
             arrayIndexes[i] = len(inputFolder1)-1
 
-    print(arrayIndexes)
     for imageFiles, inputFolder, fileList, inputFolderDir in zip(doc, [inputFolder1, inputFolder2], fileLists, [inputFolder1Dir, inputFolder2Dir]):
         for i in range(5):
             imageFiles.append(misc.imread(inputFolderDir + fileList[arrayIndexes[i]]))
@@ -271,20 +270,32 @@ def lukesAugment(image):
     image = f(image)
     return image
 
-def saveSlice(slice):
+def saveSlice(slice, slice2):
     import matplotlib.pyplot as plt
     import numpy as np
     counter = 0
-    if slice.shape[3] == 2:
-        for j in range(2):
-            for i in range(5):
-                plt.subplot(2, 5, counter+1)
-                plt.imshow(slice[i, :, :, j], cmap='gray')
-                counter = counter + 1
-    if slice.shape[3] == 1:
+    if slice2 == None:
+        if slice.shape[3] == 2:
+            for j in range(2):
+                for i in range(5):
+                    plt.subplot(2, 5, counter+1)
+                    plt.imshow(slice[i, :, :, j], cmap='gray')
+                    counter = counter + 1
+        if slice.shape[3] == 1:
+            for j in range(1):
+                for i in range(5):
+                    plt.subplot(1, 5, counter+1)
+                    plt.imshow(slice[i, :, :, j], cmap='gray')
+                    counter = counter + 1
+    else:
         for j in range(1):
             for i in range(5):
-                plt.subplot(1, 5, counter+1)
+                plt.subplot(3, 5, counter + 1)
                 plt.imshow(slice[i, :, :, j], cmap='gray')
+                counter = counter + 1
+        for j in range(2):
+            for i in range(5):
+                plt.subplot(3, 5, counter + 1)
+                plt.imshow(slice2[i, :, :, j], cmap='gray')
                 counter = counter + 1
     plt.show()

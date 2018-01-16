@@ -41,7 +41,7 @@ for myPatientID, myNonAugmentedVersion in zip(patientList, augmentedList):
 
         for j in range(maxSliceNum):
             npImageArray[j, :, :, :, :] = ConstructArraySlice(workingInnerFileList, myInnerImageDirectory, workingOuterFileList, myOuterImageDirectory, j, None, boxSize)
-            saveSlice(npImageArray[j, :, :, :, :])
+            #saveSlice(npImageArray[j, :, :, :, :], None)
 
         if myNonAugmentedVersion:
             np.save(myArrayDirectory + '3DNonAugment' + 'Patient' + myPatientID + '_' + 'binary' + '.npy', npImageArray)

@@ -16,9 +16,10 @@ from random import *
 patientList = ['PS', 'PB', 'RR', 'DC']
 trainingArrayDepth = 300 
 augmentationsInTrainingArray = len(patientList)
+boxSize = 150
 
-img_measure = np.ndarray((trainingArrayDepth, 5, 256, 256, 1), dtype='float32')
-bm_measure = np.ndarray((trainingArrayDepth, 5, 256, 256, 2), dtype='float32')
+img_measure = np.ndarray((trainingArrayDepth, 5, boxSize, boxSize, 1), dtype='float32')
+bm_measure = np.ndarray((trainingArrayDepth, 5, boxSize, boxSize, 2), dtype='float32')
 
 def my_loss(y_true, y_pred):
     return K.mean(K.binary_crossentropy(y_true[:,2,:,:,:], y_pred[:,2,:,:,:]))
@@ -77,7 +78,7 @@ for k in range(10):
     model_list = os.listdir(model_folder)  # Checking if there is an existing model
     if model_list.__len__() == 0:  # Creating a new model if empty
 
-        inputs = Input((5, 256, 256, 1))
+        inputs = Input((5, boxSize, boxSize, 1))
 	
 	conv1 = TimeDistributed(BatchNormalization())(inputs)
         conv1 = TimeDistributed(Conv2D(32, (3, 3), padding='same'))(conv1)
