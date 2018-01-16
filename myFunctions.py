@@ -106,230 +106,99 @@ def isDoubleAAA(image):
         if np.square(OuterTop[0] - OuterBottom[0]) + np.square(OuterTop[1] - OuterBottom[1]) < 400:
             return False
 
+def ConstructArraySlice(inputFolder1, inputFolder1Dir, inputFolder2, inputFolder2Dir, inputFileIndex, centralLocation, boxSize):
+    import scipy.misc as misc
+    import sys
+    import os
+    dicomSlice = False
 
-def Construct3DBinaryArray(innerImageDirectory, outerImageDirectory, arrayDirectory, patientID, nonAugmentedVersion, binNum, returnArray, saveArray):
+    # Just a little check
+    if inputFolder2!= None and len(inputFolder2) != len(inputFolder1):
+        sys.exit('Your folders arent the same length, something is seriously wrong')
 
-    imageType = 'InnerBinary'
+    # Making the distinction between binary and dicom a little easier
+    if inputFolder2 == None:
+        dicomSlice = True
 
-    fileList = sorted(os.listdir(innerImageDirectory))
-    imgTotal = len(fileList)
-    totalCounter = 0
-    maxSliceNum = len(fileList) if len(fileList) < findLargestNumberInFolder(fileList) else findLargestNumberInFolder(fileList)
+    if dicomSlice == True:
+        fileLists = [inputFolder1]
+        image1Files = []
+        doc = [image1Files]
+    else:
+        image1Files = []
+        image2Files = []
+        fileLists = [inputFolder1, inputFolder2]
+        doc = [image1Files, image2Files]
 
-    npImageArray = np.ndarray((binNum * maxSliceNum, 5, 256, 256, 2), dtype='float32')
+    arrayIndexes = np.linspace(inputFileIndex-6, inputFileIndex+6, 5, dtype='int')
+    for i in range(len(arrayIndexes)):
+        if arrayIndexes[i] < 0:
+            arrayIndexes[i] = 0
+        elif arrayIndexes[i] > len(inputFolder1)-1:
+            arrayIndexes[i] = len(inputFolder1)-1
 
-    print('Loop starting')
-    for filename in fileList:
-        split1 = filename.split(imageType)
-        if nonAugmentedVersion == True:
-            split2 = split1[0].split('NonAugment')
-            augNum = 777777777777777
-        elif nonAugmentedVersion == False:
-            split2 = split1[0].split('Augment')
-            augNum = int(split2[1])
-        split3 = split1[1].split('Patient')
-        sliceNum = int(split3[0])
-        if nonAugmentedVersion == False:
-            arrayIndex = int(sliceNum - 1 + (augNum - 1 - ((math.floor((augNum - 1) / binNum)) * binNum)) * maxSliceNum)
-            outerImageFileName = 'Augment' + split2[1] + 'OuterBinary' + split3[0] + 'Patient' + patientID + '.png'
-        elif nonAugmentedVersion == True:
-            arrayIndex = totalCounter
-            outerImageFileName = 'NonAugment' + 'OuterBinary' + split3[0] + 'Patient' + patientID + '.png'
+    print(arrayIndexes)
+    for imageFiles, inputFolder, fileList, inputFolderDir in zip(doc, [inputFolder1, inputFolder2], fileLists, [inputFolder1Dir, inputFolder2Dir]):
+        for i in range(5):
+            imageFiles.append(misc.imread(inputFolderDir + fileList[arrayIndexes[i]]))
+        if (not imageFiles[0].shape[0] == boxSize or not imageFiles[0].shape[1] == boxSize) and (centralLocation is None):
+            sys.exit('If your image isnt 150x150 then you need to tell me the central location')
+        elif (not imageFiles[0].shape[0] == boxSize or not imageFiles[0].shape[1] == boxSize) and (centralLocation is not None):
+            lowerRow = centralLocation[0] - round(boxSize/2)
+            upperRow = lowerRow + boxSize
+            leftColumn = centralLocation[0] - round(boxSize/2)
+            rightColumn = leftColumn + boxSize
+            for i in range(5):
+                imageFiles[i] = imageFiles[i][upperRow:lowerRow, leftColumn:rightColumn]
 
-        outerImage = misc.imread(outerImageDirectory + outerImageFileName, flatten=True)
-        innerImage = misc.imread(innerImageDirectory + filename, flatten=True)
+    if dicomSlice:
+        slice = np.ndarray((5, boxSize, boxSize, 1), dtype='float32')
+        for i in range(5):
+            slice[i, :, :, 0] = image1Files[i]
+        return slice
+    else:
+        slice = np.ndarray((5, boxSize, boxSize, 2), dtype='float32')
+        for i in range(5):
+            slice[i, :, :, 0] = image1Files[i]
+            slice[i, :, :, 1] = image2Files[i]
+        return slice
 
-        for i in range(2):
-
-            if i == 0:
-                image = innerImage
-            elif i == 1:
-                image = outerImage
-
-            if sliceNum > 4 and sliceNum < maxSliceNum - 3:
-                # assign to this index
-                npImageArray[arrayIndex, 2, :, :, i] = image
-
-                # assign to previous indexes
-                npImageArray[arrayIndex - 2, 3, :, :, i] = image
-                npImageArray[arrayIndex - 4, 4, :, :, i] = image
-
-                # assign to future indexes
-                npImageArray[arrayIndex + 2, 1, :, :, i] = image
-                npImageArray[arrayIndex + 4, 0, :, :, i] = image
-
-            elif sliceNum > 2 and sliceNum < 5:  # gets slices 3 and 4
-                # assign to this index
-                npImageArray[arrayIndex, 2, :, :, i] = image
-                npImageArray[arrayIndex, 1, :, :, i] = image
-                npImageArray[arrayIndex, 0, :, :, i] = image  # this is done for contingency
-
-                # assign to previous indexes
-                npImageArray[arrayIndex - 2, 3, :, :, i] = image
-
-                # assign to future indexes
-                npImageArray[arrayIndex + 2, 1, :, :, i] = image
-                npImageArray[arrayIndex + 4, 0, :, :, i] = image
-
-            elif sliceNum < 2:  # gets slices 1 and 2
-                # assign to this index
-                npImageArray[arrayIndex, 2, :, :, i] = image
-                npImageArray[arrayIndex, 1, :, :, i] = image
-                npImageArray[arrayIndex, 0, :, :, i] = image  # this is necessary
-
-                # assign to future indexes
-                npImageArray[arrayIndex + 2, 1, :, :, i] = image
-                npImageArray[arrayIndex + 4, 0, :, :, i] = image
-            elif sliceNum > maxSliceNum - 5 and sliceNum < maxSliceNum - 1:  # gets slices which are 3rd and 4th from the end
-                # assign to this index
-                npImageArray[arrayIndex, 2, :, :, i] = image
-                npImageArray[arrayIndex, 3, :, :, i] = image
-                npImageArray[arrayIndex, 4, :, :, i] = image  # this is done for contingency
-
-                # assign to previous indexes
-                npImageArray[arrayIndex - 2, 3, :, :, i] = image
-                npImageArray[arrayIndex - 4, 4, :, :, i] = image
-
-                # assign to future indexes
-                npImageArray[arrayIndex + 2, 1, :, :, i] = image
-
-            elif sliceNum > maxSliceNum - 3:  # gets the end and the one before it
-                # assigns to this index
-                npImageArray[arrayIndex, 2, :, :, i] = image
-                npImageArray[arrayIndex, 3, :, :, i] = image
-                npImageArray[arrayIndex, 4, :, :, i] = image  # this is needed
-
-                # assigns to prevous indexes
-                npImageArray[arrayIndex - 2, 3, :, :, i] = image
-                npImageArray[arrayIndex - 4, 4, :, :, i] = image
-
-        totalCounter = totalCounter + 1
-
-        if ((augNum % binNum == 0) or (nonAugmentedVersion == True)) and (sliceNum == maxSliceNum):
-            if saveArray ==  True:
-                if (nonAugmentedVersion == True):
-                    np.save(arrayDirectory + '3DNonAugment' + 'Patient' + patientID + '_' + 'Binary' + '.npy', npImageArray)
-                else:
-                    np.save(arrayDirectory + '3DAugment' + "%03d" % (augNum - binNum + 1) + '-' + "%03d" % (
-                    augNum) + 'Patient' + patientID + '_' + 'Binary' + '.npy', npImageArray)
-                    print('Saved one at augNum ' + str(augNum))
-            if returnArray == True:
-                return npImageArray
-
-def Construct3DDicomArray(imageDirectory, arrayDirectory, patientID, nonAugmentedVersion, binNum, returnArray, saveArray):
-
-    imageType = 'Original'
-
-    fileList = sorted(os.listdir(imageDirectory))
-    imgTotal = len(fileList)
-    totalCounter = 0
-    maxSliceNum = len(fileList) if len(fileList) < findLargestNumberInFolder(fileList) else findLargestNumberInFolder(fileList)
-
-    npImageArray = np.ndarray((binNum*maxSliceNum, 5, 256, 256, 1), dtype='float32')
-
-    print('Loop starting')
-    for filename in fileList:
-        split1 = filename.split(imageType)
-        if nonAugmentedVersion == True:
-            split2 = split1[0].split('NonAugment')
-            augNum = 777777777777777
-        elif nonAugmentedVersion == False:
-            split2 = split1[0].split('Augment')
-            augNum = int(split2[1])
-        split3 = split1[1].split('Patient')
-        sliceNum = int(split3[0])
-        if nonAugmentedVersion == False:
-            arrayIndex = int(sliceNum - 1 + (augNum-1-((math.floor((augNum-1)/binNum))*binNum))*maxSliceNum)
-        elif nonAugmentedVersion == True:
-            arrayIndex = totalCounter
-
-        image = misc.imread(imageDirectory + filename, flatten=True)
-
-        if sliceNum > 4 and sliceNum < maxSliceNum - 3:
-            #assign to this index
-            npImageArray[arrayIndex, 2, :, :, 0] = image
-
-            #assign to previous indexes
-            npImageArray[arrayIndex-2, 3, :, :, 0] = image
-            npImageArray[arrayIndex-4, 4, :, :, 0] = image
-
-            #assign to future indexes
-            npImageArray[arrayIndex+2, 1, :, :, 0] = image
-            npImageArray[arrayIndex+4, 0, :, :, 0] = image
-
-        elif sliceNum > 2 and sliceNum < 5: #gets slices 3 and 4
-            #assign to this index
-            npImageArray[arrayIndex, 2, :, :, 0] = image
-            npImageArray[arrayIndex, 1, :, :, 0] = image
-            npImageArray[arrayIndex, 0, :, :, 0] = image #this is done for contingency
-
-            #assign to previous indexes
-            npImageArray[arrayIndex - 2, 3, :, :, 0] = image
-
-            # assign to future indexes
-            npImageArray[arrayIndex + 2, 1, :, :, 0] = image
-            npImageArray[arrayIndex + 4, 0, :, :, 0] = image
-
-        elif sliceNum < 2: #gets slices 1 and 2
-            # assign to this index
-            npImageArray[arrayIndex, 2, :, :, 0] = image
-            npImageArray[arrayIndex, 1, :, :, 0] = image
-            npImageArray[arrayIndex, 0, :, :, 0] = image  # this is necessary
-
-            # assign to future indexes
-            npImageArray[arrayIndex + 2, 1, :, :, 0] = image
-            npImageArray[arrayIndex + 4, 0, :, :, 0] = image
-        elif sliceNum > maxSliceNum - 5 and sliceNum < maxSliceNum - 1: #gets slices which are 3rd and 4th from the end
-            # assign to this index
-            npImageArray[arrayIndex, 2, :, :, 0] = image
-            npImageArray[arrayIndex, 3, :, :, 0] = image
-            npImageArray[arrayIndex, 4, :, :, 0] = image  # this is done for contingency
-
-            # assign to previous indexes
-            npImageArray[arrayIndex - 2, 3, :, :, 0] = image
-            npImageArray[arrayIndex - 4, 4, :, :, 0] = image
-
-            # assign to future indexes
-            npImageArray[arrayIndex + 2, 1, :, :, 0] = image
-
-        elif sliceNum > maxSliceNum - 3: #gets the end and the one before it
-            #assigns to this index
-            npImageArray[arrayIndex, 2, :, :, 0] = image
-            npImageArray[arrayIndex, 3, :, :, 0] = image
-            npImageArray[arrayIndex, 4, :, :, 0] = image #this is needed
-
-            #assigns to prevous indexes
-            npImageArray[arrayIndex - 2, 3, :, :, 0] = image
-            npImageArray[arrayIndex - 4, 4, :, :, 0] = image
-
-        totalCounter = totalCounter + 1
-
-        if ((augNum%binNum == 0) or (nonAugmentedVersion == True)) and (sliceNum == maxSliceNum):
-            if saveArray == True:
-                if (nonAugmentedVersion == True):
-                    np.save(arrayDirectory + '3DNonAugment' + 'Patient' + patientID + '_' + imageType + '.npy', npImageArray)
-                else:
-                    np.save(arrayDirectory + '3DAugment' + "%03d" % (augNum-binNum+1) + '-' + "%03d" % (augNum) + 'Patient' + patientID + '_' + imageType + '.npy', npImageArray)
-                print('Saved one at augNum ' + str(augNum))
-            if returnArray == True:
-                return npImageArray
+def findLargestNumberInString(text):
+    li = [0]
+    for i in range(len(text)):
+        num = ""
+        if text[i].isdigit():
+            while text[i].isdigit():
+                num = num + text[i]
+                i = i + 1
+            li.append(int(num))
+    return max(li)
 
 def findLargestNumberInFolder(list):
-    def findLargestNumber(text):
-        li = [0]
-        for i in range(len(text)):
-            num = ""
-            if text[i].isdigit():
-                while text[i].isdigit():
-                    num = num + text[i]
-                    i = i + 1
-                li.append(int(num))
-        return max(li)
+    import types
     largestNum = 0
     for i in range(len(list)):
-        if (findLargestNumber(list[i]) > largestNum):
-            largestNum = findLargestNumber(list[i])
+        if (findLargestNumberInString(list[i]) > largestNum):
+            largestNum = findLargestNumberInString(list[i])
     return largestNum
+
+def findSmallestNumberInString(text):
+    li = []
+    for i in range(len(text)):
+        num = ""
+        if text[i].isdigit():
+            while text[i].isdigit():
+                num = num + text[i]
+                i = i + 1
+            li.append(int(num))
+    return min(li)
+
+def findSmallestNumberInFolder(list):
+    smallestNum = 10000
+    for i in range(len(list)):
+        if (findSmallestNumberInString(list[i]) < smallestNum):
+            smallestNum = findSmallestNumberInString(list[i])
+    return smallestNum
 
 def getImagePerimeterPoints(inputImage):
     image = Image.fromarray(inputImage)
@@ -401,3 +270,21 @@ def lukesAugment(image):
     f = np.vectorize(f)  # or use a different name if you want to keep the original f
     image = f(image)
     return image
+
+def saveSlice(slice):
+    import matplotlib.pyplot as plt
+    import numpy as np
+    counter = 0
+    if slice.shape[3] == 2:
+        for j in range(2):
+            for i in range(5):
+                plt.subplot(2, 5, counter+1)
+                plt.imshow(slice[i, :, :, j], cmap='gray')
+                counter = counter + 1
+    if slice.shape[3] == 1:
+        for j in range(1):
+            for i in range(5):
+                plt.subplot(1, 5, counter+1)
+                plt.imshow(slice[i, :, :, j], cmap='gray')
+                counter = counter + 1
+    plt.show()
