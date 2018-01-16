@@ -7,6 +7,7 @@ import math
 from myFunctions import *
 from scipy import ndimage, signal
 
+
 patientList = ['RR', 'PS', 'PB', 'NS', 'DC']
 renalArteryDict = {'PS': 150, 'PB': 151, 'NS': 152, 'DC': 153, 'RR': 154}
 

@@ -6,9 +6,6 @@ from __future__ import print_function
 #from keras.optimizers import Adam
 #from keras import losses
 import numpy as np
-import h5py
-import matplotlib
-import matplotlib.pyplot as plt
 from PIL import Image, ImageEnhance, ImageFilter
 import scipy
 from scipy import misc
@@ -313,7 +310,7 @@ def Construct3DDicomArray(imageDirectory, arrayDirectory, patientID, nonAugmente
                     np.save(arrayDirectory + '3DNonAugment' + 'Patient' + patientID + '_' + imageType + '.npy', npImageArray)
                 else:
                     np.save(arrayDirectory + '3DAugment' + "%03d" % (augNum-binNum+1) + '-' + "%03d" % (augNum) + 'Patient' + patientID + '_' + imageType + '.npy', npImageArray)
-	        print('Saved one at augNum ' + str(augNum))
+                print('Saved one at augNum ' + str(augNum))
             if returnArray == True:
                 return npImageArray
         

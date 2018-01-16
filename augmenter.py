@@ -1,6 +1,7 @@
 from __future__ import division
 from random import *
 import numpy as np
+import sys
 from myFunctions import *
 import os, shutil
 import scipy
@@ -12,12 +13,15 @@ from PIL import Image, ImageEnhance
 from scipy.ndimage.interpolation import affine_transform
 from skimage import io
 from skimage import transform as tf
-import sys
 
-patientList = ['NS', 'PB', 'PS']#, 'RR', 'DC']
-augmentedList = [False, True, True]#, True, True]
-augNumList = [1, 6, 6]#, 6, 6]
-tmpFolder = '/media/sf_sharedFolder/4YP/4YP_Python/tmp/'
+
+patientList = ['NS', 'PB', 'PS', 'RR', 'DC']
+augmentedList = [False, True, True, True, True]
+augNumList = [1, 6, 6, 6, 6]
+tmpFolder = 'C:\\Users\\Luke\\Documents\\sharedFolder\\4YP\\4YP_Python\\tmp\\'
+if not os.path.exists(tmpFolder):
+            os.mkdir(tmpFolder)
+boxSize = 256
 
 for iteration in range(len(patientList)):
 
@@ -29,13 +33,26 @@ for iteration in range(len(patientList)):
 
     print('Augmenting patient ' + PatientID)
 
-    #Set read and write directories for the images
-    innerBinaryReadDir = '/media/sf_sharedFolder/4YP/Images/Regent_' + PatientID + '/preAugmentation/innerBinary/'
-    innerBinaryWriteDir = '/media/sf_sharedFolder/4YP/Images/Regent_' + PatientID + '/postAugmentation/innerAugmented/'
-    outerBinaryReadDir = '/media/sf_sharedFolder/4YP/Images/Regent_' + PatientID + '/preAugmentation/outerBinary/'
-    outerBinaryWriteDir = '/media/sf_sharedFolder/4YP/Images/Regent_' + PatientID + '/postAugmentation/outerAugmented/'
-    dicomReadDir = '/media/sf_sharedFolder/4YP/Images/Regent_' + PatientID + '/preAugmentation/dicoms/'
-    dicomWriteDir = '/media/sf_sharedFolder/4YP/Images/Regent_' + PatientID + '/postAugmentation/croppedDicoms/'
+    # Set read and write directories for the images
+    preAugmentationRootDir = 'C:\\Users\\Luke\\Documents\\sharedFolder\\4YP\\Images\\Regent_' + PatientID + '\\preAugmentation\\'
+    postAugmentationRootDir = 'C:\\Users\\Luke\\Documents\\sharedFolder\\4YP\\Images\\Regent_' + PatientID + '\\postAugmentation\\'
+    innerBinaryReadDir = preAugmentationRootDir + 'innerBinary\\'
+    innerBinaryWriteDir = postAugmentationRootDir + '\\innerAugmented\\'
+    outerBinaryReadDir = preAugmentationRootDir + 'outerBinary\\'
+    outerBinaryWriteDir = postAugmentationRootDir + 'outerAugmented\\'
+    dicomReadDir = preAugmentationRootDir + 'dicoms\\'
+    dicomWriteDir = postAugmentationRootDir + 'croppedDicoms\\'
+
+    if not os.path.exists(preAugmentationRootDir):
+        os.mkdir(preAugmentationRootDir)
+    if not os.path.exists(postAugmentationRootDir):
+        os.mkdir(postAugmentationRootDir)
+    if not os.path.exists(innerBinaryWriteDir):
+        os.mkdir(innerBinaryWriteDir)
+    if not os.path.exists(outerBinaryWriteDir):
+        os.mkdir(outerBinaryWriteDir)
+    if not os.path.exists(dicomWriteDir):
+        os.mkdir(dicomWriteDir)
 
     tmpDicomDir = tmpFolder + 'temporaryDicoms/'
     tmpOuterBinaryDir = tmpFolder + 'temporaryOuterBinaries/'
@@ -63,7 +80,6 @@ for iteration in range(len(patientList)):
             upper = 255*random()
 
         # Shear adjustment parameters
-
         index = (np.abs(randomVals + uniform(-0.625, 0.625))).argmin()
         IshearVal = 0.6 * randomVals[index]
         randomVals = np.delete(randomVals, index)
@@ -71,8 +87,6 @@ for iteration in range(len(patientList)):
         trueFileNum = 0
 
         fileList = sorted(os.listdir(innerBinaryReadDir))
-        #fileList = filter(lambda k: '130' in k, fileList)
-
         for filename in fileList:
             dicomImage = np.ndarray([512, 512])
 
@@ -144,13 +158,13 @@ for iteration in range(len(patientList)):
             dicomImage.convert('RGB').save(tmpDicomDir + dicomWritename,'PNG')
 
         bBox = getFolderBoundingBox(tmpOuterBinaryDir)
-        if bBox[1]-bBox[0] > 256 or bBox[3]-bBox[2] > 256:
-            sys.exit('Houston we have a problem, the image isnt going to fit in 256x256')
+        if bBox[1]-bBox[0] > boxSize or bBox[3]-bBox[2] > boxSize:
+            sys.exit('Houston we have a problem, the image isnt going to fit in ' + str(boxSize))
 
-        xLower = int(bBox[0] - round((256 - bBox[1]+bBox[0])/2) if bBox[0] - round((256 - bBox[1]+bBox[0])/2) > 0 else 0)
-        xUpper = xLower + 256
-        yLower = int(bBox[2] - round((256 - bBox[3]+bBox[2])/2) if bBox[2] - round((256 - bBox[3]+bBox[2])/2) > 0 else 0)
-        yUpper = yLower + 256
+        xLower = int(bBox[0] - round((boxSize - bBox[1]+bBox[0])/2) if bBox[0] - round((boxSize - bBox[1]+bBox[0])/2) > 0 else 0)
+        xUpper = xLower + boxSize
+        yLower = int(bBox[2] - round((boxSize - bBox[3]+bBox[2])/2) if bBox[2] - round((boxSize - bBox[3]+bBox[2])/2) > 0 else 0)
+        yUpper = yLower + boxSize
 
         fileList = sorted(os.listdir(tmpOuterBinaryDir))
         for filename in fileList:
