@@ -30,16 +30,16 @@ validationArrayPath = '/home/lukemarkham1383/trainEnvironment/npArrays/validatio
 trainingArrayPath = '/home/lukemarkham1383/trainEnvironment/npArrays/training/'
 model_folder = '/home/lukemarkham1383/trainEnvironment/models/'
 
-img_test_file = '3DNonAugmentPatientNS_Original.npy'
-bm_test_file = '3DNonAugmentPatientNS_Binary.npy'
+img_test_file = '3DNonAugmentPatientNS_dicom.npy'
+bm_test_file = '3DNonAugmentPatientNS_binary.npy'
 img_test = np.load(os.path.join(validationArrayPath, img_test_file))
 bm_test = np.load(os.path.join(validationArrayPath, bm_test_file)) / 255
 
 arraySplits = np.linspace(0, trainingArrayDepth, len(patientList)+1, dtype = 'int')
 
 fileList = sorted(os.listdir(trainingArrayPath))
-dicomFileList = filter(lambda k: 'Original' in k, fileList)
-binaryFileList = filter(lambda k: 'Binar' in k, fileList)
+dicomFileList = filter(lambda k: 'dicom' in k, fileList)
+binaryFileList = filter(lambda k: 'bina' in k, fileList)
 for k in range(10):
     print('Constructing Arrays')  
 
@@ -50,7 +50,7 @@ for k in range(10):
 		patientFile = dicomFileList[0]
 	print('Using data from ' + patientFile)
 	dicomFile = np.load(trainingArrayPath + patientFile)
-	binaryFile = np.load(trainingArrayPath + patientFile.split("Orig")[0] + 'Binary.npy') / 255
+	binaryFile = np.load(trainingArrayPath + patientFile.split("dic")[0] + 'binary.npy') / 255
 	#print('Printing for ' + str(arraySplits[i+1]-arraySplits[i]))
         for j in range(arraySplits[i+1]-arraySplits[i]):
             index = int(np.round(uniform(0, len(dicomFile)-1)))
@@ -66,9 +66,9 @@ for k in range(10):
     testSplit = img_test.shape[0]/(img_test.shape[0]+img_measure.shape[0])
     print('Validation split is ' + str(testSplit))
 
-    img_train = np.concatenate((img_measure, img_test))
-    bm_train = np.concatenate((bm_measure, bm_test))
-    
+    img_train = np.concatenate((img_measure, img_test))[:,:,0:144, 0:144, :]
+    bm_train = np.concatenate((bm_measure, bm_test))[:,:,0:144, 0:144, :]
+	
     #np.save(model_folder + 'TestBinary' + '.npy', bm_train)
     #np.save(model_folder + 'TestDicom' + '.npy', img_train)
     #sys.exit()
@@ -78,7 +78,7 @@ for k in range(10):
     model_list = os.listdir(model_folder)  # Checking if there is an existing model
     if model_list.__len__() == 0:  # Creating a new model if empty
 
-        inputs = Input((5, boxSize, boxSize, 1))
+        inputs = Input((5, 160, 160, 1))
 	
 	conv1 = TimeDistributed(BatchNormalization())(inputs)
         conv1 = TimeDistributed(Conv2D(32, (3, 3), padding='same'))(conv1)
@@ -159,8 +159,8 @@ for k in range(10):
         print('Using model number ' + str(epoch_number))
 
     #model.summary()
-    model.compile(optimizer=Adam(lr=1e-3), loss=losses.binary_crossentropy)
-    #model.compile(optimizer=Adam(lr=1e-3), loss=my_loss)
+    #model.compile(optimizer=Adam(lr=1e-3), loss=losses.binary_crossentropy)
+    model.compile(optimizer=Adam(lr=1e-3), loss=my_loss)
     model_check_file = os.path.join(model_folder, 'weights.{epoch:02d}-{loss:.2f}.h5')
     model_checkpoint = ModelCheckpoint(model_check_file, monitor='val_loss', save_best_only=False)
     print('Starting train')
