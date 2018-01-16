@@ -11,17 +11,16 @@ import matplotlib
 import matplotlib.pyplot as plt
 from PIL import Image, ImageEnhance
 from scipy.ndimage.interpolation import affine_transform
-from skimage import io
 from skimage import transform as tf
 
-
-patientList = ['NS', 'PB', 'PS', 'RR', 'DC']
-augmentedList = [False, True, True, True, True]
-augNumList = [1, 6, 6, 6, 6]
+centrePerImage = True
+patientList = ['PB', 'PS', 'RR', 'DC', 'NS']
+augmentedList = [True, True, True, True, False]
+augNumList = [5, 5, 5, 5, 1]
 tmpFolder = 'C:\\Users\\Luke\\Documents\\sharedFolder\\4YP\\4YP_Python\\tmp\\'
 if not os.path.exists(tmpFolder):
             os.mkdir(tmpFolder)
-boxSize = 256
+boxSize = 150
 
 for iteration in range(len(patientList)):
 
@@ -58,92 +57,66 @@ for iteration in range(len(patientList)):
     tmpOuterBinaryDir = tmpFolder + 'temporaryOuterBinaries/'
     tmpInnerBinaryDir = tmpFolder + 'temporaryInnerBinaries/'
 
-
-    counter = 0
     for i in range(augNum):
         print('Doing augmentation ' + str(i))
+
         try:
             shutil.rmtree(tmpFolder)
         except:
             pass
 
         while (os.path.exists(tmpFolder)):
-            9-7
+            9 - 7
         os.mkdir(tmpFolder)
         os.mkdir(tmpDicomDir)
         os.mkdir(tmpOuterBinaryDir)
         os.mkdir(tmpInnerBinaryDir)
 
-        #contrast adjustment parameters
-        upper = 0
-        while upper < 210:
-            upper = 255*random()
-
         # Shear adjustment parameters
-        index = (np.abs(randomVals + uniform(-0.625, 0.625))).argmin()
-        IshearVal = 0.6 * randomVals[index]
-        randomVals = np.delete(randomVals, index)
+        IshearVal = 0.7 * randomVals[-1]
+        # Shear adjustment
+        afine_tf = tf.AffineTransform(shear=IshearVal)
+        randomVals = np.delete(randomVals, -1)
 
         trueFileNum = 0
 
-        fileList = sorted(os.listdir(innerBinaryReadDir))
-        for filename in fileList:
-            dicomImage = np.ndarray([512, 512])
+        innerFileList = sorted(os.listdir(innerBinaryReadDir))
+        outerFileList = sorted(os.listdir(outerBinaryReadDir))
+        dicomFileList = sorted(os.listdir(dicomReadDir))
+        for innerBinaryFilename, outerBinaryFilename, dicomFilename in zip(innerFileList, outerFileList, dicomFileList):
 
-            innerBinaryFilename = filename
-            innerBinaryFilepath = innerBinaryReadDir + innerBinaryFilename
-
-            trueFileNum = trueFileNum + 1
-            newFileName = filename
-            splitted = newFileName.split('Binary.png')
-            firstHalf = splitted[0]
-            splitted2 = firstHalf.split('inner')
-            imageNumber = splitted2[1]
-
-            dicomFilename = 'IMG00' + imageNumber
             dicomFilepath = dicomReadDir + dicomFilename
-
-            outerBinaryFilename = 'outer' + imageNumber + 'Binary.png'
             outerBinaryFilepath = outerBinaryReadDir + outerBinaryFilename
+            innerBinaryFilepath = innerBinaryReadDir + innerBinaryFilename
 
             # Read the binaries
             innerBinaryImage = Image.open(innerBinaryFilepath)
             outerBinaryImage = Image.open(outerBinaryFilepath)
+            innerBinaryImage = misc.imread(innerBinaryFilepath)
+            outerBinaryImage = misc.imread(outerBinaryFilepath)
+
+            trueFileNum = trueFileNum + 1
 
             #Read the dicom into a png
-            inputDicomImage = dicom.read_file(dicomFilepath)
-            dicomImage[:, :] = inputDicomImage.pixel_array
+            dicomImage = dicom.read_file(dicomFilepath).pixel_array
             misc.imsave(tmpFolder + 'dicomTemp.png', dicomImage)
             dicomImage = misc.imread(tmpFolder + 'dicomTemp.png')
-            dicomImage = Image.fromarray((dicomImage))
             os.remove(tmpFolder + 'dicomTemp.png')
-
-            currentLower = np.amin(dicomImage)
-            currentUpper = np.amax(dicomImage)
 
             if augmented == True:
                 # Contrast adjustment
                 dicomImage = lukesAugment(dicomImage)
-                #Shear adjustment
-                afine_tf = tf.AffineTransform(shear=IshearVal)
 
                 # Apply transform to image data
-                dicomImage = np.round(tf.warp(np.array(dicomImage)/255, inverse_map=afine_tf)*255)
-                innerBinaryImage = np.round(tf.warp(np.array(innerBinaryImage) / 255, inverse_map=afine_tf) * 255)
-                outerBinaryImage = np.round(tf.warp(np.array(outerBinaryImage) / 255, inverse_map=afine_tf) * 255)
+                dicomImage = np.round(tf.warp(dicomImage/255, inverse_map=afine_tf)*255)
+                innerBinaryImage = np.round(tf.warp(innerBinaryImage / 255, inverse_map=afine_tf) * 255)
+                outerBinaryImage = np.round(tf.warp(outerBinaryImage / 255, inverse_map=afine_tf) * 255)
 
-                dicomImage = Image.fromarray((dicomImage))
-                innerBinaryImage = Image.fromarray((innerBinaryImage))
-                outerBinaryImage = Image.fromarray((outerBinaryImage))
-
-                # You could rotate image or scale image
-
+                # You could rotate image or scale image here
             else:
-                image = np.array(dicomImage)
-                #plt.imshow(image, cmap='gray')
-                #plt.show()
                 dicomImage = lukesAugment(dicomImage)
-                #dicomImage.show()
+
+            # Generates the names for the image file
             if augmented == True:
                 innerBinaryWritename = 'Augment' + '%.2d' % (i+1) + 'InnerBinary' + '%.3d' % trueFileNum + 'Patient' + PatientID + '.png'
                 outerBinaryWritename = 'Augment' + '%.2d' % (i+1) + 'OuterBinary' + '%.3d' % trueFileNum + 'Patient' + PatientID + '.png'
@@ -153,36 +126,54 @@ for iteration in range(len(patientList)):
                 outerBinaryWritename = 'NonAugment' + 'OuterBinary' + '%.3d' % trueFileNum + 'Patient' + PatientID + '.png'
                 dicomWritename = 'NonAugment' + 'Original' + '%.3d' % trueFileNum + 'Patient' + PatientID + '.png'
 
-            innerBinaryImage.convert('RGB').save(tmpInnerBinaryDir + innerBinaryWritename,'PNG')
-            outerBinaryImage.convert('RGB').save(tmpOuterBinaryDir + outerBinaryWritename,'PNG')
-            dicomImage.convert('RGB').save(tmpDicomDir + dicomWritename,'PNG')
+            if centrePerImage:
+                # Gets the bounding box for this particular image
+                bBox = getImageBoundingBox(outerBinaryImage)
+                if bBox[1] - bBox[0] > boxSize or bBox[3] - bBox[2] > boxSize:
+                    sys.exit('Houston we have a problem, the image isnt going to fit in ' + str(boxSize))
+                xLower = int(bBox[0] - round((boxSize - bBox[1] + bBox[0]) / 2) if bBox[0] - round(
+                    (boxSize - bBox[1] + bBox[0]) / 2) > 0 else 0)
+                xUpper = xLower + boxSize
+                yLower = int(bBox[2] - round((boxSize - bBox[3] + bBox[2]) / 2) if bBox[2] - round(
+                    (boxSize - bBox[3] + bBox[2]) / 2) > 0 else 0)
+                yUpper = yLower + boxSize
 
-        bBox = getFolderBoundingBox(tmpOuterBinaryDir)
-        if bBox[1]-bBox[0] > boxSize or bBox[3]-bBox[2] > boxSize:
-            sys.exit('Houston we have a problem, the image isnt going to fit in ' + str(boxSize))
+                innerBinaryImage = innerBinaryImage[yLower:yUpper, xLower:xUpper]
+                if not innerBinaryImage.shape[0] == boxSize or not innerBinaryImage.shape[1] == boxSize:
+                    sys.exit('Your shear is too large breh!')
+                misc.imsave(innerBinaryWriteDir + innerBinaryWritename, innerBinaryImage)
+                outerBinaryImage = outerBinaryImage[yLower:yUpper, xLower:xUpper]
+                if not outerBinaryImage.shape[0] == boxSize or not outerBinaryImage.shape[1] == boxSize:
+                    sys.exit('Your shear is too large breh!')
+                misc.imsave(outerBinaryWriteDir + outerBinaryWritename, np.abs(outerBinaryImage-innerBinaryImage))
+                dicomImage = dicomImage[yLower:yUpper, xLower:xUpper]
+                if not dicomImage.shape[0] == boxSize or not dicomImage.shape[1] == boxSize:
+                    sys.exit('Your shear is too large breh!')
+                misc.imsave(dicomWriteDir + dicomWritename, dicomImage)
+            else:
+                misc.imsave(tmpOuterBinaryDir + outerBinaryWritename, outerBinaryImage)
+                misc.imsave(tmpInnerBinaryDir + innerBinaryWritename, innerBinaryImage)
+                misc.imsave(tmpDicomDir + dicomWritename, dicomImage)
 
-        xLower = int(bBox[0] - round((boxSize - bBox[1]+bBox[0])/2) if bBox[0] - round((boxSize - bBox[1]+bBox[0])/2) > 0 else 0)
-        xUpper = xLower + boxSize
-        yLower = int(bBox[2] - round((boxSize - bBox[3]+bBox[2])/2) if bBox[2] - round((boxSize - bBox[3]+bBox[2])/2) > 0 else 0)
-        yUpper = yLower + boxSize
+        # Bases the chopping on the centre of the folder, reads in the images from the tmp folder and chops them
+        if not centrePerImage:
+            bBox = getFolderBoundingBox(tmpOuterBinaryDir)
+            if bBox[1] - bBox[0] > boxSize or bBox[3] - bBox[2] > boxSize:
+                sys.exit('Houston we have a problem, the image isnt going to fit in ' + str(boxSize))
+            xLower = int(bBox[0] - round((boxSize - bBox[1] + bBox[0]) / 2) if bBox[0] - round(
+                (boxSize - bBox[1] + bBox[0]) / 2) > 0 else 0)
+            xUpper = xLower + boxSize
+            yLower = int(bBox[2] - round((boxSize - bBox[3] + bBox[2]) / 2) if bBox[2] - round(
+                (boxSize - bBox[3] + bBox[2]) / 2) > 0 else 0)
+            yUpper = yLower + boxSize
 
-        fileList = sorted(os.listdir(tmpOuterBinaryDir))
-        for filename in fileList:
-            image = Image.open(tmpOuterBinaryDir + filename)
-            image = np.array(image)[yLower:yUpper, xLower:xUpper]
-            image = Image.fromarray((image))
-            image.convert('RGB').save(outerBinaryWriteDir + filename, 'PNG')
-
-        fileList = sorted(os.listdir(tmpInnerBinaryDir))
-        for filename in fileList:
-            image = Image.open(tmpInnerBinaryDir + filename)
-            image = np.array(image)[yLower:yUpper, xLower:xUpper]
-            image = Image.fromarray((image))
-            image.convert('RGB').save(innerBinaryWriteDir + filename, 'PNG')
-
-        fileList = sorted(os.listdir(tmpDicomDir))
-        for filename in fileList:
-            image = Image.open(tmpDicomDir + filename)
-            image = np.array(image)[yLower:yUpper, xLower:xUpper]
-            image = Image.fromarray((image))
-            image.convert('RGB').save(dicomWriteDir + filename, 'PNG')
+            innerFileList = sorted(os.listdir(tmpInnerBinaryDir))
+            outerFileList = sorted(os.listdir(tmpOuterBinaryDir))
+            dicomFileList = sorted(os.listdir(tmpDicomDir))
+            for innerBinaryFilename, outerBinaryFilename, dicomFilename in zip(innerFileList, outerFileList, dicomFileList):
+                outerBinaryImage = outerBinaryImage[yLower:yUpper, xLower:xUpper]
+                misc.imsave(outerBinaryWriteDir + outerBinaryWritename, outerBinaryImage)
+                innerBinaryImage = innerBinaryImage[yLower:yUpper, xLower:xUpper]
+                misc.imsave(innerBinaryWriteDir + innerBinaryWritename, innerBinaryImage)
+                dicomImage = dicomImage[yLower:yUpper, xLower:xUpper]
+                misc.imsave(dicomWriteDir + dicomWritename, dicomImage)

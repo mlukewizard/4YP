@@ -103,7 +103,7 @@ def isDoubleAAA(image):
             OuterBottom[1] = OuterBottom[1] + int(x[1])
         else:
             return True
-        if np.square(OuterTop[0] - OuterBottom[0]) + np.square(OuterTop[1] - OuterBottom[1]) < 200:
+        if np.square(OuterTop[0] - OuterBottom[0]) + np.square(OuterTop[1] - OuterBottom[1]) < 400:
             return False
 
 
@@ -313,7 +313,6 @@ def Construct3DDicomArray(imageDirectory, arrayDirectory, patientID, nonAugmente
                 print('Saved one at augNum ' + str(augNum))
             if returnArray == True:
                 return npImageArray
-        
 
 def findLargestNumberInFolder(list):
     def findLargestNumber(text):
@@ -342,24 +341,10 @@ def getImageBoundingBox(inputImage):
     from scipy import ndimage
     import numpy as np
 
-    image = ndimage.gaussian_filter(inputImage, sigma=1)
-
-    minX = 500
-    maxX = 10
-    maxY = 10
-    minY = 500
-    for i in range(image.shape[1]):
-        for j in range(image.shape[0]):
-            if (image[j,i] > 200):
-                if (i < minX):
-                    minX = i
-                elif (i > maxX):
-                    maxX = i
-                if (j < minY):
-                    minY = j
-                elif (j > maxY):
-                    maxY = j
-    return np.array([minX, maxX, minY, maxY])
+    if np.max(inputImage) > 0:
+        return np.array([min(np.where(np.isin(np.transpose(inputImage), 255))[0]), max(np.where(np.isin(inputImage, 255))[1]), min(np.where(np.isin(inputImage, 255))[0]), max(np.where(np.isin(np.transpose(inputImage), 255))[1])])
+    else:
+        return np.array([256, 256, 256, 256])
 
 def getFolderBoundingBox(filePath):
     import os
@@ -407,9 +392,7 @@ def getFolderCoM(dicomFolder):
     yMax = int(yMin + 256)
     return np.array([xMin, xMax, yMin, yMax])
 
-
 def lukesAugment(image):
-    from PIL import Image, ImageStat, ImageOps
     import numpy as np
 
     def f(x):
@@ -417,9 +400,4 @@ def lukesAugment(image):
 
     f = np.vectorize(f)  # or use a different name if you want to keep the original f
     image = f(image)
-
-
-    #image = ImageOps.equalize(image)
-    image = Image.fromarray((image))
-
     return image
