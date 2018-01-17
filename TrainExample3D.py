@@ -16,7 +16,7 @@ from random import *
 patientList = ['PS', 'PB', 'RR', 'DC']
 trainingArrayDepth = 300 
 augmentationsInTrainingArray = len(patientList)
-boxSize = 150
+boxSize = 144
 
 img_measure = np.ndarray((trainingArrayDepth, 5, boxSize, boxSize, 1), dtype='float32')
 bm_measure = np.ndarray((trainingArrayDepth, 5, boxSize, boxSize, 2), dtype='float32')
@@ -40,7 +40,7 @@ arraySplits = np.linspace(0, trainingArrayDepth, len(patientList)+1, dtype = 'in
 fileList = sorted(os.listdir(trainingArrayPath))
 dicomFileList = filter(lambda k: 'dicom' in k, fileList)
 binaryFileList = filter(lambda k: 'bina' in k, fileList)
-for k in range(10):
+for k in range(30):
     print('Constructing Arrays')  
 
     for i in range(len(arraySplits)-1):
@@ -66,8 +66,8 @@ for k in range(10):
     testSplit = img_test.shape[0]/(img_test.shape[0]+img_measure.shape[0])
     print('Validation split is ' + str(testSplit))
 
-    img_train = np.concatenate((img_measure, img_test))[:,:,0:144, 0:144, :]
-    bm_train = np.concatenate((bm_measure, bm_test))[:,:,0:144, 0:144, :]
+    img_train = np.concatenate((img_measure, img_test))
+    bm_train = np.concatenate((bm_measure, bm_test))
 	
     #np.save(model_folder + 'TestBinary' + '.npy', bm_train)
     #np.save(model_folder + 'TestDicom' + '.npy', img_train)
@@ -78,7 +78,7 @@ for k in range(10):
     model_list = os.listdir(model_folder)  # Checking if there is an existing model
     if model_list.__len__() == 0:  # Creating a new model if empty
 
-        inputs = Input((5, 160, 160, 1))
+        inputs = Input((5, boxSize, boxSize, 1))
 	
 	conv1 = TimeDistributed(BatchNormalization())(inputs)
         conv1 = TimeDistributed(Conv2D(32, (3, 3), padding='same'))(conv1)
@@ -164,6 +164,6 @@ for k in range(10):
     model_check_file = os.path.join(model_folder, 'weights.{epoch:02d}-{loss:.2f}.h5')
     model_checkpoint = ModelCheckpoint(model_check_file, monitor='val_loss', save_best_only=False)
     print('Starting train')
-    model.fit(img_train, bm_train, batch_size=2, initial_epoch=epoch_number, epochs=epoch_number + 1,
+    model.fit(img_train, bm_train, batch_size=4, initial_epoch=epoch_number, epochs=epoch_number + 1,
                             verbose=1, shuffle=True, validation_split=testSplit,
                             callbacks=[model_checkpoint])
