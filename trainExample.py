@@ -20,7 +20,7 @@ def my_loss(y_true, y_pred):
 losses.my_loss = my_loss
 
 #Program inputs
-twoDVersion = False
+twoDVersion = True
 patientList = ['PS', 'PB', 'RR', 'DC']
 trainingArrayDepth = 300 
 augmentationsInTrainingArray = len(patientList)
@@ -123,8 +123,10 @@ for k in range(30):
         print('Using model number ' + str(epoch_number))
 
     # Defines the compile settings
-    #model.compile(optimizer=Adam(lr=1e-3), loss=losses.binary_crossentropy)
-    model.compile(optimizer=Adam(lr=1e-3), loss=my_loss)
+    if not twoDVersion:
+	model.compile(optimizer=Adam(lr=1e-3), loss=my_loss)
+    else:
+	model.compile(optimizer=Adam(lr=1e-3), loss=losses.binary_crossentropy)
 
     #Defines the checkpoint file
     model_check_file = os.path.join(model_folder, 'weights.{epoch:02d}-{loss:.2f}.h5')

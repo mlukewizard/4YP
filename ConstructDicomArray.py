@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from uuid import getnode as get_mac
 mac = get_mac()
 boxSize = 144
-twoDVersion = False
+twoDVersion = True
 
 patientList = ['NS', 'PB', 'PS', 'RR', 'DC']
 augmentedList = [True, False, False, False, False]
