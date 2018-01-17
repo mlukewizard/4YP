@@ -47,5 +47,5 @@ for myPatientID, myNonAugmentedVersion in zip(patientList, augmentedList):
             np.save(myArrayDirectory + '3DNonAugment' + 'Patient' + myPatientID + '_' + 'binary' + '.npy', npImageArray)
         else:
             np.save(
-                myArrayDirectory + '3DAugment0' + str(augNum + 1) + 'Patient' + myPatientID + '_' + 'binary' + '.npy', npImageArray)
+                myArrayDirectory + '3DAugment0' + str(augNum) + 'Patient' + myPatientID + '_' + 'binary' + '.npy', npImageArray)
         print('Saved one at augNum ' + str(augNum))

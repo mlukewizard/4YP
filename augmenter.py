@@ -14,13 +14,13 @@ from scipy.ndimage.interpolation import affine_transform
 from skimage import transform as tf
 
 centrePerImage = True
-patientList = ['PB', 'PS', 'RR', 'DC', 'NS']
-augmentedList = [True, True, True, True, False]
-augNumList = [5, 5, 5, 5, 1]
+patientList = ['RR', 'DC', 'NS']
+augmentedList = [True, True, False]
+augNumList = [5, 5, 1]
 tmpFolder = 'C:\\Users\\Luke\\Documents\\sharedFolder\\4YP\\4YP_Python\\tmp\\'
 if not os.path.exists(tmpFolder):
             os.mkdir(tmpFolder)
-boxSize = 150
+boxSize = 144
 
 for iteration in range(len(patientList)):
 
@@ -138,14 +138,20 @@ for iteration in range(len(patientList)):
                     (boxSize - bBox[3] + bBox[2]) / 2) > 0 else 0)
                 yUpper = yLower + boxSize
 
-                innerBinaryImage = innerBinaryImage[yLower:yUpper, xLower:xUpper]
-                if not innerBinaryImage.shape[0] == boxSize or not innerBinaryImage.shape[1] == boxSize:
-                    sys.exit('Your shear is too large breh!')
-                misc.imsave(innerBinaryWriteDir + innerBinaryWritename, innerBinaryImage)
-                outerBinaryImage = outerBinaryImage[yLower:yUpper, xLower:xUpper]
-                if not outerBinaryImage.shape[0] == boxSize or not outerBinaryImage.shape[1] == boxSize:
-                    sys.exit('Your shear is too large breh!')
-                misc.imsave(outerBinaryWriteDir + outerBinaryWritename, np.abs(outerBinaryImage-innerBinaryImage))
+                if np.max(innerBinaryImage) < 10 or np.max(outerBinaryImage) < 10:
+                    # This is so that you dont get an image unless both of them are defined
+                    print('Blanking this one')
+                    misc.imsave(innerBinaryWriteDir + innerBinaryWritename, np.zeros([boxSize, boxSize]))
+                    misc.imsave(outerBinaryWriteDir + outerBinaryWritename, np.zeros([boxSize, boxSize]))
+                else:
+                    innerBinaryImage = innerBinaryImage[yLower:yUpper, xLower:xUpper]
+                    if not innerBinaryImage.shape[0] == boxSize or not innerBinaryImage.shape[1] == boxSize:
+                        sys.exit('Your shear is too large breh!')
+                    misc.imsave(innerBinaryWriteDir + innerBinaryWritename, innerBinaryImage)
+                    outerBinaryImage = outerBinaryImage[yLower:yUpper, xLower:xUpper]
+                    if not outerBinaryImage.shape[0] == boxSize or not outerBinaryImage.shape[1] == boxSize:
+                        sys.exit('Your shear is too large breh!')
+                    misc.imsave(outerBinaryWriteDir + outerBinaryWritename, np.abs(outerBinaryImage-innerBinaryImage))
                 dicomImage = dicomImage[yLower:yUpper, xLower:xUpper]
                 if not dicomImage.shape[0] == boxSize or not dicomImage.shape[1] == boxSize:
                     sys.exit('Your shear is too large breh!')
