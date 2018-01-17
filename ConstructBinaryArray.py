@@ -7,8 +7,8 @@ mac = get_mac()
 boxSize = 144
 twoDVersion = True
 
-patientList = ['NS', 'PB', 'PS', 'RR', 'DC']
-augmentedList = [True, False, False, False, False]
+patientList = ['RR', 'NS', 'PB', 'PS', 'DC']
+augmentedList = [False, True, False, False, False]
 
 for myPatientID, myNonAugmentedVersion in zip(patientList, augmentedList):
     print('Constructing binary arrays for patient ' + myPatientID)
@@ -46,10 +46,10 @@ for myPatientID, myNonAugmentedVersion in zip(patientList, augmentedList):
 
         for j in range(maxSliceNum):
             if not twoDVersion:
-                npImageArray[augNum, :, :, :, :] = ConstructArraySlice(workingInnerFileList, myInnerImageDirectory,  j, boxSize, inputFolder2 = workingOuterFileList, inputFolder2Dir = myOuterImageDirectory, twoDVersion = True)
+                npImageArray[j, :, :, :, :] = ConstructArraySlice(workingInnerFileList, myInnerImageDirectory,  j, boxSize, inputFolder2 = workingOuterFileList, inputFolder2Dir = myOuterImageDirectory, twoDVersion = True)
                 #saveSlice(npImageArray[j, :, :, :, :], showFig = True)
             else:
-                npImageArray[augNum, :, :, :] = ConstructArraySlice(workingInnerFileList, myInnerImageDirectory,  j, boxSize, inputFolder2 = workingOuterFileList, inputFolder2Dir = myOuterImageDirectory, twoDVersion = True)
+                npImageArray[j, :, :, :] = ConstructArraySlice(workingInnerFileList, myInnerImageDirectory,  j, boxSize, inputFolder2 = workingOuterFileList, inputFolder2Dir = myOuterImageDirectory, twoDVersion = True)
                 #saveSlice(npImageArray[j, :, :, :], showFig = True)
 
         if myNonAugmentedVersion:
