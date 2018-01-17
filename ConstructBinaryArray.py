@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from uuid import getnode as get_mac
 mac = get_mac()
 boxSize = 144
+twoDVersion = False
 
 patientList = ['NS', 'PB', 'PS', 'RR', 'DC']
 augmentedList = [True, False, False, False, False]
@@ -27,9 +28,13 @@ for myPatientID, myNonAugmentedVersion in zip(patientList, augmentedList):
     innerFileList = sorted(os.listdir(myInnerImageDirectory))
     outerFileList = sorted(os.listdir(myOuterImageDirectory))
     maxSliceNum = findLargestNumberInFolder(innerFileList)
-    npImageArray = np.ndarray((maxSliceNum, 5, boxSize, boxSize, 2), dtype='float32')
 
     maxAugNum = 1 if myNonAugmentedVersion else 5
+
+    if not twoDVersion:
+        npImageArray = np.ndarray((maxSliceNum, 5, boxSize, boxSize, 2), dtype='float32')
+    else:
+        npImageArray = np.ndarray((maxSliceNum, boxSize, boxSize, 2), dtype='float32')
 
     for augNum in range(1, maxAugNum+1):
         if not myNonAugmentedVersion:
@@ -40,12 +45,21 @@ for myPatientID, myNonAugmentedVersion in zip(patientList, augmentedList):
             workingOuterFileList = outerFileList
 
         for j in range(maxSliceNum):
-            npImageArray[j, :, :, :, :] = ConstructArraySlice(workingInnerFileList, myInnerImageDirectory, workingOuterFileList, myOuterImageDirectory, j, None, boxSize)
-            #saveSlice(npImageArray[j, :, :, :, :], None)
+            if not twoDVersion:
+                npImageArray[augNum, :, :, :, :] = ConstructArraySlice(workingInnerFileList, myInnerImageDirectory,  j, boxSize, inputFolder2 = workingOuterFileList, inputFolder2Dir = myOuterImageDirectory, twoDVersion = True)
+                #saveSlice(npImageArray[j, :, :, :, :], showFig = True)
+            else:
+                npImageArray[augNum, :, :, :] = ConstructArraySlice(workingInnerFileList, myInnerImageDirectory,  j, boxSize, inputFolder2 = workingOuterFileList, inputFolder2Dir = myOuterImageDirectory, twoDVersion = True)
+                #saveSlice(npImageArray[j, :, :, :], showFig = True)
 
         if myNonAugmentedVersion:
-            np.save(myArrayDirectory + '3DNonAugment' + 'Patient' + myPatientID + '_' + 'binary' + '.npy', npImageArray)
+            if not twoDVersion:
+                np.save(myArrayDirectory + '3DNonAugment' + 'Patient' + myPatientID + '_' + 'binary' + '.npy', npImageArray)
+            else:
+                np.save(myArrayDirectory + '2DNonAugment' + 'Patient' + myPatientID + '_' + 'binary' + '.npy', npImageArray)
         else:
-            np.save(
-                myArrayDirectory + '3DAugment0' + str(augNum) + 'Patient' + myPatientID + '_' + 'binary' + '.npy', npImageArray)
+            if not twoDVersion:
+                np.save(myArrayDirectory + '3DAugment0' + str(augNum) + 'Patient' + myPatientID + '_' + 'binary' + '.npy', npImageArray)
+            else:
+                np.save(myArrayDirectory + '2DAugment0' + str(augNum) + 'Patient' + myPatientID + '_' + 'binary' + '.npy', npImageArray)
         print('Saved one at augNum ' + str(augNum))

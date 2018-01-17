@@ -106,10 +106,14 @@ def isDoubleAAA(image):
         if np.square(OuterTop[0] - OuterBottom[0]) + np.square(OuterTop[1] - OuterBottom[1]) < 400:
             return False
 
-def ConstructArraySlice(inputFolder1, inputFolder1Dir, inputFolder2, inputFolder2Dir, inputFileIndex, centralLocation, boxSize):
+def ConstructArraySlice(inputFolder1, inputFolder1Dir, inputFileIndex, boxSize,inputFolder2=None, inputFolder2Dir= 'Blank', centralLocation=None, twoDVersion = False):
     import scipy.misc as misc
     import sys
     import os
+    import dicom
+    tmpFolder = 'C:\\Users\\Luke\\Documents\\sharedFolder\\4YP\\4YP_Python\\tmp\\'
+    if not os.path.exists(tmpFolder):
+        os.mkdir(tmpFolder)
     dicomSlice = False
 
     # Just a little check
@@ -130,37 +134,57 @@ def ConstructArraySlice(inputFolder1, inputFolder1Dir, inputFolder2, inputFolder
         fileLists = [inputFolder1, inputFolder2]
         doc = [image1Files, image2Files]
 
-    arrayIndexes = np.linspace(inputFileIndex-6, inputFileIndex+6, 5, dtype='int')
-    for i in range(len(arrayIndexes)):
-        if arrayIndexes[i] < 0:
-            arrayIndexes[i] = 0
-        elif arrayIndexes[i] > len(inputFolder1)-1:
-            arrayIndexes[i] = len(inputFolder1)-1
+    if not twoDVersion:
+        arrayIndexes = np.linspace(inputFileIndex-6, inputFileIndex+6, 5, dtype='int')
+        for i in range(len(arrayIndexes)):
+            if arrayIndexes[i] < 0:
+                arrayIndexes[i] = 0
+            elif arrayIndexes[i] > len(inputFolder1)-1:
+                arrayIndexes[i] = len(inputFolder1)-1
+    else:
+        arrayIndexes = [inputFileIndex]
 
     for imageFiles, inputFolder, fileList, inputFolderDir in zip(doc, [inputFolder1, inputFolder2], fileLists, [inputFolder1Dir, inputFolder2Dir]):
-        for i in range(5):
-            imageFiles.append(misc.imread(inputFolderDir + fileList[arrayIndexes[i]]))
+        for i in range(len(arrayIndexes)):
+            if '.' in fileList[arrayIndexes[i]]:
+                imageFiles.append(misc.imread(inputFolderDir + fileList[arrayIndexes[i]]))
+            else:
+                dicomImage = dicom.read_file(inputFolderDir + fileList[arrayIndexes[i]]).pixel_array
+                misc.imsave(tmpFolder + 'dicomTemp.png', dicomImage)
+                imageFiles.append(misc.imread(tmpFolder + 'dicomTemp.png'))
+                os.remove(tmpFolder + 'dicomTemp.png')
         if (not imageFiles[0].shape[0] == boxSize or not imageFiles[0].shape[1] == boxSize) and (centralLocation is None):
-            sys.exit('If your image isnt 150x150 then you need to tell me the central location')
+            sys.exit('If your image isnt 144x144 then you need to tell me the central location')
         elif (not imageFiles[0].shape[0] == boxSize or not imageFiles[0].shape[1] == boxSize) and (centralLocation is not None):
-            lowerRow = centralLocation[0] - round(boxSize/2)
-            upperRow = lowerRow + boxSize
-            leftColumn = centralLocation[0] - round(boxSize/2)
+            upperRow = centralLocation[0] - round(boxSize/2)
+            lowerRow = upperRow + boxSize
+            leftColumn = centralLocation[1] - round(boxSize/2)
             rightColumn = leftColumn + boxSize
-            for i in range(5):
+            for i in range(len(arrayIndexes)):
                 imageFiles[i] = imageFiles[i][upperRow:lowerRow, leftColumn:rightColumn]
 
-    if dicomSlice:
-        slice = np.ndarray((5, boxSize, boxSize, 1), dtype='float32')
-        for i in range(5):
-            slice[i, :, :, 0] = image1Files[i]
-        return slice
+    if not twoDVersion:
+        if dicomSlice:
+            slice = np.ndarray((len(arrayIndexes), boxSize, boxSize, 1), dtype='float32')
+            for i in range(len(arrayIndexes)):
+                slice[i, :, :, 0] = image1Files[i]
+            return slice
+        else:
+            slice = np.ndarray((len(arrayIndexes), boxSize, boxSize, 2), dtype='float32')
+            for i in range(len(arrayIndexes)):
+                slice[i, :, :, 0] = image1Files[i]
+                slice[i, :, :, 1] = image2Files[i]
+            return slice
     else:
-        slice = np.ndarray((5, boxSize, boxSize, 2), dtype='float32')
-        for i in range(5):
-            slice[i, :, :, 0] = image1Files[i]
-            slice[i, :, :, 1] = image2Files[i]
-        return slice
+        if dicomSlice:
+            slice = np.ndarray((boxSize, boxSize, 1), dtype='float32')
+            slice[:, :, 0] = image1Files[i]
+            return slice
+        else:
+            slice = np.ndarray((boxSize, boxSize, 2), dtype='float32')
+            slice[:, :, 0] = image1Files[i]
+            slice[:, :, 1] = image2Files[i]
+            return slice
 
 def findLargestNumberInString(text):
     li = [0]
@@ -270,32 +294,48 @@ def lukesAugment(image):
     image = f(image)
     return image
 
-def saveSlice(slice, slice2):
+def saveSlice(slice1, slice2=np.zeros(7), saveFig = False, showFig = False, saveFolder = ''):
     import matplotlib.pyplot as plt
     import numpy as np
+    import datetime
+    import sys
     counter = 0
-    if slice2 == None:
-        if slice.shape[3] == 2:
-            for j in range(2):
-                for i in range(5):
-                    plt.subplot(2, 5, counter+1)
+    mySlices = [slice1]
+    if not slice2.shape[0] == 7:
+        mySlices.append(slice2)
+    totalDepth = 0
+    for slice in mySlices:
+        if slice.shape[0] > 10:
+            sliceDepth = slice.shape[2]
+            totalDepth = totalDepth + sliceDepth
+        else:
+            sliceDepth = slice.shape[3]
+            totalDepth = totalDepth + sliceDepth
+    for slice in mySlices:
+        if slice.shape[0] > 10:
+            sliceWidth = 1
+            sliceDepth = slice.shape[2]
+            twoD = True
+        else:
+            sliceWidth = slice.shape[0]
+            sliceDepth = slice.shape[3]
+            twoD = False
+        for j in range(sliceDepth):
+            for i in range(sliceWidth):
+                plt.subplot(totalDepth, sliceWidth, counter+1)
+                if not twoD:
                     plt.imshow(slice[i, :, :, j], cmap='gray')
-                    counter = counter + 1
-        if slice.shape[3] == 1:
-            for j in range(1):
-                for i in range(5):
-                    plt.subplot(1, 5, counter+1)
-                    plt.imshow(slice[i, :, :, j], cmap='gray')
-                    counter = counter + 1
-    else:
-        for j in range(1):
-            for i in range(5):
-                plt.subplot(3, 5, counter + 1)
-                plt.imshow(slice[i, :, :, j], cmap='gray')
+                else:
+                    plt.imshow(slice[:, :, j], cmap='gray')
+                plt.axis('off')
                 counter = counter + 1
-        for j in range(2):
-            for i in range(5):
-                plt.subplot(3, 5, counter + 1)
-                plt.imshow(slice2[i, :, :, j], cmap='gray')
-                counter = counter + 1
-    plt.show()
+
+    if showFig == True:
+        mng = plt.get_current_fig_manager()
+        mng.window.state('zoomed')
+        plt.show()
+    if saveFig == True:
+        if saveFolder == '':
+            sys.exit('If you set saveFig as true you also need to specify saveFolder')
+        else:
+            plt.savefig(saveFolder + 'Figure_' + str(datetime.datetime.now()).split('.')[0].replace(':','-').replace(' ','_'))
