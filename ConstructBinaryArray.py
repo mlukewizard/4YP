@@ -4,8 +4,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from uuid import getnode as get_mac
 mac = get_mac()
-boxSize = 144
-twoDVersion = True
+boxSize = 256
+twoDVersion = False
 
 patientList = ['RR', 'NS', 'PB', 'PS', 'DC']
 augmentedList = [False, True, False, False, False]
@@ -46,7 +46,7 @@ for myPatientID, myNonAugmentedVersion in zip(patientList, augmentedList):
 
         for j in range(maxSliceNum):
             if not twoDVersion:
-                npImageArray[j, :, :, :, :] = ConstructArraySlice(workingInnerFileList, myInnerImageDirectory,  j, boxSize, inputFolder2 = workingOuterFileList, inputFolder2Dir = myOuterImageDirectory, twoDVersion = True)
+                npImageArray[j, :, :, :, :] = ConstructArraySlice(workingInnerFileList, myInnerImageDirectory,  j, boxSize, inputFolder2 = workingOuterFileList, inputFolder2Dir = myOuterImageDirectory)
                 #saveSlice(npImageArray[j, :, :, :, :], showFig = True)
             else:
                 npImageArray[j, :, :, :] = ConstructArraySlice(workingInnerFileList, myInnerImageDirectory,  j, boxSize, inputFolder2 = workingOuterFileList, inputFolder2Dir = myOuterImageDirectory, twoDVersion = True)
