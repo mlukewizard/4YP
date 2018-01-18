@@ -20,11 +20,11 @@ def my_loss(y_true, y_pred):
 losses.my_loss = my_loss
 
 #Program inputs
-twoDVersion = True
+twoDVersion = False
 patientList = ['PS', 'PB', 'RR', 'DC']
 trainingArrayDepth = 300 
 augmentationsInTrainingArray = len(patientList)
-boxSize = 144
+boxSize = 256
 
 #Initilising training arrays
 if not twoDVersion:

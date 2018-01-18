@@ -117,7 +117,7 @@ def ConstructArraySlice(inputFolder1, inputFolder1Dir, inputFileIndex, boxSize,i
     from uuid import getnode as get_mac
     mac = get_mac()
     if mac != 176507742233701:
-        tmpFolder = 
+        tmpFolder = '/home/lukemarkham1383/trainEnvironment/4YP_Python/tmp/'
     else:
         tmpFolder = 'C:\\Users\\Luke\\Documents\\sharedFolder\\4YP\\4YP_Python\\tmp\\'
     if not os.path.exists(tmpFolder):
