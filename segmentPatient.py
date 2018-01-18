@@ -20,16 +20,16 @@ def my_loss(y_true, y_pred):
     return K.mean(K.binary_crossentropy(y_true[:, 2, :, :, :], y_pred[:, 2, :, :, :]))
 losses.my_loss = my_loss
 
-
+twoDVersion = False
 patientList = ['MH']
 indexStartLocations = [300] #160
-centralCoordinates = [[200, 280]]#[[310, 286]] # In form [yPosition, xPosition] (remember axis is from top left)
-boxSize = 144
+centralCoordinates = [[256, 256]]#[[310, 286]] # In form [yPosition, xPosition] (remember axis is from top left)
+boxSize = 256
 
 tmpFolder = 'C:\\Users\\Luke\\Documents\\sharedFolder\\4YP\\4YP_Python\\tmp\\'
 if not os.path.exists(tmpFolder):
             os.mkdir(tmpFolder)
-model_file = 'C:\\Users\\Luke\\Documents\\sharedFolder\\4YP\\Models\\17thJan\\weights.56-0.03.h5'
+model_file = 'C:\\Users\\Luke\\Documents\\sharedFolder\\4YP\\Models\\18thJan\\weights.04-0.06.h5'
 
 # Loads the model
 model = load_model(model_file)
@@ -53,9 +53,14 @@ for patientID, indexStartLocation, centralCoordinate in zip(patientList, indexSt
         #plt.show()
         #os.remove(tmpFolder + 'dicomTemp.png')
 
-        modelInputArray = ConstructArraySlice(dicomList, dicomFolder, k, boxSize, centralLocation=centralCoordinate, twoDVersion = True)
-        output = model.predict(np.expand_dims(modelInputArray, axis=0))*255
-        #newLocation = ndimage.measurements.center_of_mass(output[0, 2, :, :, 0])
-        newLocation = ndimage.measurements.center_of_mass(output[0, :, :, 0])
+        modelInputArray = np.expand_dims(ConstructArraySlice(dicomList, dicomFolder, k, boxSize, centralLocation=centralCoordinate), axis=0)
+        output = model.predict(modelInputArray)*255
+        if not twoDVersion:
+            newLocation = ndimage.measurements.center_of_mass(output[0, 2, :, :, 0])
+        else:
+            newLocation = ndimage.measurements.center_of_mass(output[0, :, :, 0])
         centralCoordinate = [int(centralCoordinate[0] - boxSize/2 + round(newLocation[0])), int(centralCoordinate[1] - boxSize/2 + round(newLocation[1]))]
-        saveSlice(modelInputArray, output, saveFig = True, saveFolder = 'C:\\Users\\Luke\\Documents\\sharedFolder\\4YP\\savedFigures\\')
+        if not twoDVersion:
+            saveSlice(modelInputArray, output, showFig = True, saveFolder = 'C:\\Users\\Luke\\Documents\\sharedFolder\\4YP\\savedFigures\\')
+        else:
+            saveSlice(modelInputArray, output, showFig=True, saveFolder='C:\\Users\\Luke\\Documents\\sharedFolder\\4YP\\savedFigures\\', twoDVersion = True)

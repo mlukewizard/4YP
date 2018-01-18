@@ -313,29 +313,33 @@ def saveSlice(slice1, slice2=np.zeros(7), saveFig = False, showFig = False, save
     if not slice2.shape[0] == 7:
         mySlices.append(slice2)
     totalDepth = 0
+
+    #This loop sums the depths on the slices so we know how big to make the plot
     for slice in mySlices:
-        if slice.shape[0] > 10:
-            sliceDepth = slice.shape[2]
-            totalDepth = totalDepth + sliceDepth
-        else:
+        if len(slice.shape) == 4:
             sliceDepth = slice.shape[3]
             totalDepth = totalDepth + sliceDepth
+        else:
+            sliceDepth = slice.shape[4]
+            totalDepth = totalDepth + sliceDepth
+
+    #This loop plots each of the slices
     for slice in mySlices:
-        if slice.shape[0] > 10:
+        if len(slice.shape) == 4:
             sliceWidth = 1
-            sliceDepth = slice.shape[2]
+            sliceDepth = slice.shape[3]
             twoD = True
         else:
-            sliceWidth = slice.shape[0]
-            sliceDepth = slice.shape[3]
+            sliceWidth = slice.shape[1]
+            sliceDepth = slice.shape[4]
             twoD = False
         for j in range(sliceDepth):
             for i in range(sliceWidth):
                 plt.subplot(totalDepth, sliceWidth, counter+1)
                 if not twoD:
-                    plt.imshow(slice[i, :, :, j], cmap='gray')
+                    plt.imshow(slice[0, i, :, :, j], cmap='gray')
                 else:
-                    plt.imshow(slice[:, :, j], cmap='gray')
+                    plt.imshow(slice[0, :, :, j], cmap='gray')
                 plt.axis('off')
                 counter = counter + 1
 
