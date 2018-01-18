@@ -126,7 +126,7 @@ for k in range(30):
     #if not twoDVersion:
 	#model.compile(optimizer=Adam(lr=1e-3), loss=my_loss)
     #else:
-	model.compile(optimizer=Adam(lr=1e-3), loss=losses.binary_crossentropy)
+    model.compile(optimizer=Adam(lr=1e-3), loss=losses.binary_crossentropy)
 
     #Defines the checkpoint file
     model_check_file = os.path.join(model_folder, 'weights.{epoch:02d}-{loss:.2f}.h5')
