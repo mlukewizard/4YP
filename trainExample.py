@@ -123,9 +123,9 @@ for k in range(30):
         print('Using model number ' + str(epoch_number))
 
     # Defines the compile settings
-    if not twoDVersion:
-	model.compile(optimizer=Adam(lr=1e-3), loss=my_loss)
-    else:
+    #if not twoDVersion:
+	#model.compile(optimizer=Adam(lr=1e-3), loss=my_loss)
+    #else:
 	model.compile(optimizer=Adam(lr=1e-3), loss=losses.binary_crossentropy)
 
     #Defines the checkpoint file
