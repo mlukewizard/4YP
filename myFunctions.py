@@ -111,7 +111,15 @@ def ConstructArraySlice(inputFolder1, inputFolder1Dir, inputFileIndex, boxSize,i
     import sys
     import os
     import dicom
-    tmpFolder = 'C:\\Users\\Luke\\Documents\\sharedFolder\\4YP\\4YP_Python\\tmp\\'
+    import PIL
+    from PIL import Image
+    import matplotlib.pyplot as plt
+    from uuid import getnode as get_mac
+    mac = get_mac()
+    if mac != 176507742233701:
+        tmpFolder = 
+    else:
+        tmpFolder = 'C:\\Users\\Luke\\Documents\\sharedFolder\\4YP\\4YP_Python\\tmp\\'
     if not os.path.exists(tmpFolder):
         os.mkdir(tmpFolder)
     dicomSlice = False
@@ -143,11 +151,11 @@ def ConstructArraySlice(inputFolder1, inputFolder1Dir, inputFileIndex, boxSize,i
                 arrayIndexes[i] = len(inputFolder1)-1
     else:
         arrayIndexes = [inputFileIndex]
-
+    #print(arrayIndexes)
     for imageFiles, inputFolder, fileList, inputFolderDir in zip(doc, [inputFolder1, inputFolder2], fileLists, [inputFolder1Dir, inputFolder2Dir]):
         for i in range(len(arrayIndexes)):
             if '.' in fileList[arrayIndexes[i]]:
-                imageFiles.append(misc.imread(inputFolderDir + fileList[arrayIndexes[i]]))
+                imageFiles.append(np.array(Image.open(inputFolderDir + fileList[arrayIndexes[i]]).convert('F')))
             else:
                 dicomImage = dicom.read_file(inputFolderDir + fileList[arrayIndexes[i]]).pixel_array
                 misc.imsave(tmpFolder + 'dicomTemp.png', dicomImage)
@@ -174,6 +182,7 @@ def ConstructArraySlice(inputFolder1, inputFolder1Dir, inputFileIndex, boxSize,i
             for i in range(len(arrayIndexes)):
                 slice[i, :, :, 0] = image1Files[i]
                 slice[i, :, :, 1] = image2Files[i]
+            #saveSlice(slice, showFig=True)
             return slice
     else:
         if dicomSlice:
