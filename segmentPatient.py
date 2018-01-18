@@ -25,15 +25,14 @@ patientList = ['MH']
 indexStartLocations = [300] #160
 centralCoordinates = [[200, 280]]#[[310, 286]] # In form [yPosition, xPosition] (remember axis is from top left)
 boxSize = 144
+
 tmpFolder = 'C:\\Users\\Luke\\Documents\\sharedFolder\\4YP\\4YP_Python\\tmp\\'
 if not os.path.exists(tmpFolder):
             os.mkdir(tmpFolder)
-model_file = 'C:\\Users\\Luke\\Documents\\sharedFolder\\4YP\\Models\\17thJan\\weights.24-0.02.h5'
+model_file = 'C:\\Users\\Luke\\Documents\\sharedFolder\\4YP\\Models\\17thJan\\weights.56-0.03.h5'
 
 # Loads the model
 model = load_model(model_file)
-
-modelInputArray = np.ndarray((1, 5, boxSize, boxSize, 1), dtype='float32')
 
 for patientID, indexStartLocation, centralCoordinate in zip(patientList, indexStartLocations, centralCoordinates):
     dicomFolder = 'C:\\Users\\Luke\\Documents\\sharedFolder\\4YP\\Images\\' + patientID + '_dicoms\\'
@@ -54,8 +53,9 @@ for patientID, indexStartLocation, centralCoordinate in zip(patientList, indexSt
         #plt.show()
         #os.remove(tmpFolder + 'dicomTemp.png')
 
-        modelInputArray = ConstructArraySlice(dicomList, dicomFolder, k, boxSize, centralLocation=centralCoordinate)
+        modelInputArray = ConstructArraySlice(dicomList, dicomFolder, k, boxSize, centralLocation=centralCoordinate, twoDVersion = True)
         output = model.predict(np.expand_dims(modelInputArray, axis=0))*255
-        newLocation = ndimage.measurements.center_of_mass(output[0, 2, :, :, 0])
+        #newLocation = ndimage.measurements.center_of_mass(output[0, 2, :, :, 0])
+        newLocation = ndimage.measurements.center_of_mass(output[0, :, :, 0])
         centralCoordinate = [int(centralCoordinate[0] - boxSize/2 + round(newLocation[0])), int(centralCoordinate[1] - boxSize/2 + round(newLocation[1]))]
-        saveSlice(modelInputArray, output[0, :, :, :, :], saveFig = True, saveFolder = 'C:\\Users\\Luke\\Documents\\sharedFolder\\4YP\\savedFigures\\')
+        saveSlice(modelInputArray, output, saveFig = True, saveFolder = 'C:\\Users\\Luke\\Documents\\sharedFolder\\4YP\\savedFigures\\')
