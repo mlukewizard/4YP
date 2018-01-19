@@ -159,7 +159,9 @@ def ConstructArraySlice(inputFolder1, inputFolder1Dir, inputFileIndex, boxSize,i
             else:
                 dicomImage = dicom.read_file(inputFolderDir + fileList[arrayIndexes[i]]).pixel_array
                 misc.imsave(tmpFolder + 'dicomTemp.png', dicomImage)
-                imageFiles.append(misc.imread(tmpFolder + 'dicomTemp.png'))
+                dicomImage = misc.imread(tmpFolder + 'dicomTemp.png')
+                dicomImage = lukesAugment(dicomImage)
+                imageFiles.append(dicomImage)
                 os.remove(tmpFolder + 'dicomTemp.png')
         if (not imageFiles[0].shape[0] == boxSize or not imageFiles[0].shape[1] == boxSize) and (centralLocation is None):
             sys.exit('If your image isnt 144x144 then you need to tell me the central location')
@@ -297,7 +299,7 @@ def lukesAugment(image):
     import numpy as np
 
     def f(x):
-            return 135.6*np.tanh((x-150)/70) + 132
+            return 135.78315*np.tanh((x-150)/70) + 132.0961
 
     f = np.vectorize(f)  # or use a different name if you want to keep the original f
     image = f(image)

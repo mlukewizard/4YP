@@ -22,8 +22,8 @@ losses.my_loss = my_loss
 
 twoDVersion = False
 patientList = ['MH']
-indexStartLocations = [300] #160
-centralCoordinates = [[256, 256]]#[[310, 286]] # In form [yPosition, xPosition] (remember axis is from top left)
+indexStartLocations = [300]
+centralCoordinates = [[240, 256]] # In form [yPosition, xPosition] (remember axis is from top left)
 boxSize = 256
 
 tmpFolder = 'C:\\Users\\Luke\\Documents\\sharedFolder\\4YP\\4YP_Python\\tmp\\'
@@ -53,7 +53,10 @@ for patientID, indexStartLocation, centralCoordinate in zip(patientList, indexSt
         #plt.show()
         #os.remove(tmpFolder + 'dicomTemp.png')
 
-        modelInputArray = np.expand_dims(ConstructArraySlice(dicomList, dicomFolder, k, boxSize, centralLocation=centralCoordinate), axis=0)
+        if not twoDVersion:
+            modelInputArray = np.expand_dims(ConstructArraySlice(dicomList, dicomFolder, k, boxSize, centralLocation=centralCoordinate), axis=0)
+        else:
+            modelInputArray = np.expand_dims(ConstructArraySlice(dicomList, dicomFolder, k, boxSize, centralLocation=centralCoordinate, twoDVersion=True), axis=0)
         output = model.predict(modelInputArray)*255
         if not twoDVersion:
             newLocation = ndimage.measurements.center_of_mass(output[0, 2, :, :, 0])
@@ -63,4 +66,4 @@ for patientID, indexStartLocation, centralCoordinate in zip(patientList, indexSt
         if not twoDVersion:
             saveSlice(modelInputArray, output, showFig = True, saveFolder = 'C:\\Users\\Luke\\Documents\\sharedFolder\\4YP\\savedFigures\\')
         else:
-            saveSlice(modelInputArray, output, showFig=True, saveFolder='C:\\Users\\Luke\\Documents\\sharedFolder\\4YP\\savedFigures\\', twoDVersion = True)
+            saveSlice(modelInputArray, output, saveFig=True, saveFolder='C:\\Users\\Luke\\Documents\\sharedFolder\\4YP\\savedFigures\\')
