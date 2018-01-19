@@ -61,11 +61,15 @@ for k in range(30):
 
     for i in range(len(arraySplits)-1):
         # This while loop ensures you get a patient from each patient for each epoch
-        patientFile = 'RandomString'
+        if not dicomFileList:
+	    print('Refreshing dicomFileList')
+	    dicomFileList = filter(lambda k: 'dicom' in k, fileList)
+	patientFile = 'RandomString'
         while patientFile.find(patientList[i]) == -1:
             shuffle(dicomFileList)
             patientFile = dicomFileList[0]
         print('Using data from ' + patientFile)
+	dicomFileList.pop(0)	
 
         # Loads arrays of images
         dicomFile = np.load(trainingArrayPath + patientFile)
@@ -123,10 +127,10 @@ for k in range(30):
         print('Using model number ' + str(epoch_number))
 
     # Defines the compile settings
-    #if not twoDVersion:
-	#model.compile(optimizer=Adam(lr=1e-3), loss=my_loss)
-    #else:
-    model.compile(optimizer=Adam(lr=1e-3), loss=losses.binary_crossentropy)
+    if not twoDVersion:
+	model.compile(optimizer=Adam(lr=5e-4), loss=my_loss)
+    else:
+    	model.compile(optimizer=Adam(lr=1e-3), loss=losses.binary_crossentropy)
 
     #Defines the checkpoint file
     model_check_file = os.path.join(model_folder, 'weights.{epoch:02d}-{loss:.2f}.h5')
