@@ -13,14 +13,14 @@ from PIL import Image, ImageEnhance
 from scipy.ndimage.interpolation import affine_transform
 from skimage import transform as tf
 
-centrePerImage = True
-patientList = ['RR', 'DC', 'NS']
-augmentedList = [True, True, False]
-augNumList = [5, 5, 1]
+centrePerImage = False
+patientList = ['PS']#, 'RR', 'DC', 'NS', 'PB']
+augmentedList = [True]#, True, True, False, True]
+augNumList = [5]#, 5, 5, 1, 5]
 tmpFolder = 'C:\\Users\\Luke\\Documents\\sharedFolder\\4YP\\4YP_Python\\tmp\\'
 if not os.path.exists(tmpFolder):
             os.mkdir(tmpFolder)
-boxSize = 144
+boxSize = 256
 
 for iteration in range(len(patientList)):
 
@@ -128,7 +128,7 @@ for iteration in range(len(patientList)):
 
             if centrePerImage:
                 # Gets the bounding box for this particular image
-                bBox = getImageBoundingBox(outerBinaryImage)
+                bBox = getFolderBoundingBox(tmpOuterBinaryDir)
                 if bBox[1] - bBox[0] > boxSize or bBox[3] - bBox[2] > boxSize:
                     sys.exit('Houston we have a problem, the image isnt going to fit in ' + str(boxSize))
                 xLower = int(bBox[0] - round((boxSize - bBox[1] + bBox[0]) / 2) if bBox[0] - round(
@@ -151,15 +151,22 @@ for iteration in range(len(patientList)):
                     outerBinaryImage = outerBinaryImage[yLower:yUpper, xLower:xUpper]
                     if not outerBinaryImage.shape[0] == boxSize or not outerBinaryImage.shape[1] == boxSize:
                         sys.exit('Your shear is too large breh!')
-                    misc.imsave(outerBinaryWriteDir + outerBinaryWritename, np.abs(outerBinaryImage-innerBinaryImage))
+                    misc.imsave(outerBinaryWriteDir + outerBinaryWritename, (outerBinaryImage-innerBinaryImage).clip(min=0))
                 dicomImage = dicomImage[yLower:yUpper, xLower:xUpper]
                 if not dicomImage.shape[0] == boxSize or not dicomImage.shape[1] == boxSize:
                     sys.exit('Your shear is too large breh!')
                 misc.imsave(dicomWriteDir + dicomWritename, dicomImage)
             else:
-                misc.imsave(tmpOuterBinaryDir + outerBinaryWritename, outerBinaryImage)
-                misc.imsave(tmpInnerBinaryDir + innerBinaryWritename, innerBinaryImage)
-                misc.imsave(tmpDicomDir + dicomWritename, dicomImage)
+                if np.max(innerBinaryImage) < 10 or np.max(outerBinaryImage) < 10:
+                    # This is so that you dont get an image unless both of them are defined
+                    print('Blanking this one')
+                    misc.imsave(tmpInnerBinaryDir + innerBinaryWritename, np.zeros([512, 512]))
+                    misc.imsave(tmpOuterBinaryDir + outerBinaryWritename, np.zeros([512, 512]))
+                    misc.imsave(tmpDicomDir + dicomWritename, dicomImage)
+                else:
+                    misc.imsave(tmpOuterBinaryDir + outerBinaryWritename, outerBinaryImage)
+                    misc.imsave(tmpInnerBinaryDir + innerBinaryWritename, innerBinaryImage)
+                    misc.imsave(tmpDicomDir + dicomWritename, dicomImage)
 
         # Bases the chopping on the centre of the folder, reads in the images from the tmp folder and chops them
         if not centrePerImage:
@@ -167,19 +174,33 @@ for iteration in range(len(patientList)):
             if bBox[1] - bBox[0] > boxSize or bBox[3] - bBox[2] > boxSize:
                 sys.exit('Houston we have a problem, the image isnt going to fit in ' + str(boxSize))
             xLower = int(bBox[0] - round((boxSize - bBox[1] + bBox[0]) / 2) if bBox[0] - round(
-                (boxSize - bBox[1] + bBox[0]) / 2) > 0 else 0)
+                (boxSize - bBox[1] + bBox[0]) / 2) > 0 else sys.exit('Your skew is too big breh'))
             xUpper = xLower + boxSize
             yLower = int(bBox[2] - round((boxSize - bBox[3] + bBox[2]) / 2) if bBox[2] - round(
-                (boxSize - bBox[3] + bBox[2]) / 2) > 0 else 0)
+                (boxSize - bBox[3] + bBox[2]) / 2) > 0 else sys.exit('Your skew is too big breh'))
             yUpper = yLower + boxSize
 
             innerFileList = sorted(os.listdir(tmpInnerBinaryDir))
             outerFileList = sorted(os.listdir(tmpOuterBinaryDir))
             dicomFileList = sorted(os.listdir(tmpDicomDir))
+            trueFileNum = 0
             for innerBinaryFilename, outerBinaryFilename, dicomFilename in zip(innerFileList, outerFileList, dicomFileList):
-                outerBinaryImage = outerBinaryImage[yLower:yUpper, xLower:xUpper]
-                misc.imsave(outerBinaryWriteDir + outerBinaryWritename, outerBinaryImage)
+                trueFileNum = trueFileNum + 1
+                if augmented == True:
+                    innerBinaryWritename = 'Augment' + '%.2d' % (i + 1) + 'InnerBinary' + '%.3d' % trueFileNum + 'Patient' + PatientID + '.png'
+                    outerBinaryWritename = 'Augment' + '%.2d' % (i + 1) + 'OuterBinary' + '%.3d' % trueFileNum + 'Patient' + PatientID + '.png'
+                    dicomWritename = 'Augment' + '%.2d' % (i + 1) + 'Original' + '%.3d' % trueFileNum + 'Patient' + PatientID + '.png'
+                elif augmented == False:
+                    innerBinaryWritename = 'NonAugment' + 'InnerBinary' + '%.3d' % trueFileNum + 'Patient' + PatientID + '.png'
+                    outerBinaryWritename = 'NonAugment' + 'OuterBinary' + '%.3d' % trueFileNum + 'Patient' + PatientID + '.png'
+                    dicomWritename = 'NonAugment' + 'Original' + '%.3d' % trueFileNum + 'Patient' + PatientID + '.png'
+
+                innerBinaryImage = misc.imread(tmpInnerBinaryDir + innerBinaryFilename)
                 innerBinaryImage = innerBinaryImage[yLower:yUpper, xLower:xUpper]
-                misc.imsave(innerBinaryWriteDir + innerBinaryWritename, innerBinaryImage)
+                misc.imsave(innerBinaryWriteDir + innerBinaryFilename, innerBinaryImage)
+                outerBinaryImage = misc.imread(tmpOuterBinaryDir + outerBinaryFilename)
+                outerBinaryImage = outerBinaryImage[yLower:yUpper, xLower:xUpper]
+                misc.imsave(outerBinaryWriteDir + outerBinaryFilename, (outerBinaryImage - innerBinaryImage).clip(min=0))
+                dicomImage = misc.imread(tmpDicomDir + dicomFilename)
                 dicomImage = dicomImage[yLower:yUpper, xLower:xUpper]
-                misc.imsave(dicomWriteDir + dicomWritename, dicomImage)
+                misc.imsave(dicomWriteDir + dicomFilename, dicomImage)

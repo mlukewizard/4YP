@@ -243,9 +243,10 @@ def getImagePerimeterPoints(inputImage):
 def getImageBoundingBox(inputImage):
     from scipy import ndimage
     import numpy as np
+    # You need to explore this more, this function isnt working properly i dont think
 
     if np.max(inputImage) > 0:
-        return np.array([min(np.where(np.isin(np.transpose(inputImage), 255))[0]), max(np.where(np.isin(inputImage, 255))[1]), min(np.where(np.isin(inputImage, 255))[0]), max(np.where(np.isin(np.transpose(inputImage), 255))[1])])
+        return np.array([min(np.where(np.transpose(inputImage) > 10)[0]), max(np.where(inputImage > 10)[1]), min(np.where(inputImage > 10)[0]), max(np.where(np.transpose(inputImage) > 10)[1])])
     else:
         return np.array([256, 256, 256, 256])
 
@@ -253,6 +254,8 @@ def getFolderBoundingBox(filePath):
     import os
     import numpy as np
     from scipy import misc
+    import matplotlib.pyplot as plt
+    boxSize = 512
     cumulativeImage = np.zeros(shape=(512,512), dtype='float32')
     fileList = sorted(os.listdir(filePath))
 
@@ -260,6 +263,8 @@ def getFolderBoundingBox(filePath):
         newFile = np.array(misc.imread(filePath + filename, flatten=True))
         cumulativeImage = np.add(cumulativeImage, newFile)
 
+    #plt.imshow(cumulativeImage, cmap='gray')
+    #plt.show()
     return getImageBoundingBox(cumulativeImage)
 
 def getFolderCoM(dicomFolder):
@@ -268,8 +273,9 @@ def getFolderCoM(dicomFolder):
     from scipy import ndimage
     import numpy as np
     import math
+    boxSize = 512
 
-    inputImage = np.ndarray([512, 512])
+    inputImage = np.ndarray([boxSize, boxSize])
     fileList = sorted(os.listdir(dicomFolder))
     sampleFileList = filter(lambda k: '80' in k, fileList)
     i = 0

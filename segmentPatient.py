@@ -29,7 +29,7 @@ boxSize = 256
 tmpFolder = 'C:\\Users\\Luke\\Documents\\sharedFolder\\4YP\\4YP_Python\\tmp\\'
 if not os.path.exists(tmpFolder):
             os.mkdir(tmpFolder)
-model_file = 'C:\\Users\\Luke\\Documents\\sharedFolder\\4YP\\Models\\18thJan\\weights.04-0.06.h5'
+model_file = 'C:\\Users\\Luke\\Documents\\sharedFolder\\4YP\\Models\\19thJan\\weights.12-0.03.h5'
 
 # Loads the model
 model = load_model(model_file)
