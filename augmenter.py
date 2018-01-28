@@ -14,9 +14,9 @@ from scipy.ndimage.interpolation import affine_transform
 from skimage import transform as tf
 
 centrePerImage = False
-patientList = ['PS']#, 'RR', 'DC', 'NS', 'PB']
-augmentedList = [True]#, True, True, False, True]
-augNumList = [5]#, 5, 5, 1, 5]
+patientList = ['PS', 'RR', 'DC', 'NS', 'PB']
+augmentedList = [True, True, True, False, True]
+augNumList = [5, 5, 5, 1, 5]
 tmpFolder = 'C:\\Users\\Luke\\Documents\\sharedFolder\\4YP\\4YP_Python\\tmp\\'
 if not os.path.exists(tmpFolder):
             os.mkdir(tmpFolder)

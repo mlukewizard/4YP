@@ -13,6 +13,25 @@ import math
 import os
 import copy
 
+
+def lukesImageDiverge(image, divergePoint, divergeFactor):
+    newImage = copy.deepcopy(image)
+    getCoefficient = lambda x: x/(2.5*divergeFactor) if abs(x/(2.5*divergeFactor)) < 1 else np.sign(x/(2.5*divergeFactor))
+    maxDistortionDistance = abs(int(2.5*divergeFactor))
+    if max(divergePoint) + maxDistortionDistance > image.shape[0] or min(divergePoint) - maxDistortionDistance < 0:
+        sys.exit('Youre trying to augment out of the image range')
+    for i in range(divergePoint[1] - maxDistortionDistance, divergePoint[1] + maxDistortionDistance):
+        for j in range(divergePoint[0] - maxDistortionDistance, divergePoint[0] + maxDistortionDistance):
+            xDist = j - divergePoint[0]
+            yDist = i - divergePoint[1]
+            multiplier = getCoefficient(np.sqrt(np.square(xDist) + np.square(yDist)))
+            print(multiplier)
+            if divergeFactor > 0:
+                newImage[i, j] = image[int(i + yDist * (1 - multiplier)), int(j - xDist * (1 - multiplier))]
+            if divergeFactor < 0:
+                newImage[i, j] = image[int(divergePoint[1] - yDist * multiplier), int(divergePoint[0] - xDist * multiplier)]
+    return newImage
+
 def calcPerimeter(image):
     image = shell(image)
     whitePoints = np.array(np.where(np.isin(image, 255)))
@@ -160,6 +179,8 @@ def ConstructArraySlice(inputFolder1, inputFolder1Dir, inputFileIndex, boxSize,i
                 dicomImage = dicom.read_file(inputFolderDir + fileList[arrayIndexes[i]]).pixel_array
                 misc.imsave(tmpFolder + 'dicomTemp.png', dicomImage)
                 dicomImage = misc.imread(tmpFolder + 'dicomTemp.png')
+                # plt.imshow(dicomImage, cmap='gray')
+                # plt.show()
                 dicomImage = lukesAugment(dicomImage)
                 imageFiles.append(dicomImage)
                 os.remove(tmpFolder + 'dicomTemp.png')
