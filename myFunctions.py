@@ -13,10 +13,10 @@ import math
 import os
 import copy
 
-
 def lukesImageDiverge(image, divergePoint, divergeFactor):
+    #NB. diverge point is in [x ,y] or colNum, rowNum
     newImage = copy.deepcopy(image)
-    getCoefficient = lambda x: x/(2.5*divergeFactor) if abs(x/(2.5*divergeFactor)) < 1 else np.sign(x/(2.5*divergeFactor))
+    getCoefficient = lambda x: x/(2.5*abs(divergeFactor)) if abs(x/(2.5*abs(divergeFactor))) < 1 else 1
     maxDistortionDistance = abs(int(2.5*divergeFactor))
     if max(divergePoint) + maxDistortionDistance > image.shape[0] or min(divergePoint) - maxDistortionDistance < 0:
         sys.exit('Youre trying to augment out of the image range')
@@ -25,11 +25,10 @@ def lukesImageDiverge(image, divergePoint, divergeFactor):
             xDist = j - divergePoint[0]
             yDist = i - divergePoint[1]
             multiplier = getCoefficient(np.sqrt(np.square(xDist) + np.square(yDist)))
-            print(multiplier)
             if divergeFactor > 0:
-                newImage[i, j] = image[int(i + yDist * (1 - multiplier)), int(j - xDist * (1 - multiplier))]
+                newImage[i, j] = image[int(i - yDist * (1 - multiplier)), int(j - xDist * (1 - multiplier))]
             if divergeFactor < 0:
-                newImage[i, j] = image[int(divergePoint[1] - yDist * multiplier), int(divergePoint[0] - xDist * multiplier)]
+                newImage[i, j] = image[int(i + yDist * (1 - multiplier)), int(j + xDist * (1 - multiplier))]
     return newImage
 
 def calcPerimeter(image):
@@ -112,6 +111,8 @@ def findAAABounds(wallVolume, OuterDiameter):
     return [int((points[0] + points[1])/2), int((points[2] + points[3])/2)]
 
 def isDoubleAAA(image):
+    if np.max(image) != 255:
+        return False
     OuterTop = np.array(np.where(np.isin(image, 255)))[:, 0]
     OuterBottom = np.array(np.where(np.isin(image, 255)))[:, -1]
     continueLoop = True
@@ -178,7 +179,7 @@ def ConstructArraySlice(inputFolder1, inputFolder1Dir, inputFileIndex, boxSize,i
             else:
                 dicomImage = dicom.read_file(inputFolderDir + fileList[arrayIndexes[i]]).pixel_array
                 misc.imsave(tmpFolder + 'dicomTemp.png', dicomImage)
-                dicomImage = misc.imread(tmpFolder + 'dicomTemp.png')
+                dicomImage = misc.imread(tmpFolder + 'dicomTemp.png', flatten=True)
                 # plt.imshow(dicomImage, cmap='gray')
                 # plt.show()
                 dicomImage = lukesAugment(dicomImage)
@@ -261,12 +262,39 @@ def getImagePerimeterPoints(inputImage):
     outputImage = np.array(image)
     return outputImage
 
+def getImageEdgeCoordinates(inputImage, edge):
+    import numpy as np
+    import sys
+    import copy
+
+    workingImage = copy.deepcopy(inputImage)
+    if edge == 'Left':
+        return np.array([np.where(np.transpose(workingImage) > 10)[0][0], np.where(np.transpose(workingImage) > 10)[1][0]])
+    elif edge == 'Right':
+        return np.array([np.where(np.transpose(workingImage) > 10)[0][-1], np.where(np.transpose(workingImage) > 10)[1][-1]])
+    elif edge == 'Top':
+        return np.array([np.where((workingImage) > 10)[1][0], np.where((workingImage) > 10)[0][0]])
+    elif edge == 'Bottom':
+        return np.array([np.where((workingImage) > 10)[1][-1], np.where((workingImage) > 10)[0][-1]])
+    elif edge == 'Center':
+        return np.array([int((np.where(np.transpose(workingImage) > 10)[0][0] + np.where(np.transpose(workingImage) > 10)[0][-1])/2), int((np.where((workingImage) > 10)[0][-1] + np.where((workingImage) > 10)[0][0])/2)])
+    else:
+        sys.exit('The edge type specified was not valid')
+
+def lukesBinarize(inputImage):
+    if np.max(inputImage) > 210:
+        idx = inputImage > 210
+        inputImage[idx] = 255
+    idx = inputImage < 210
+    inputImage[idx] = 0
+    return inputImage
+
 def getImageBoundingBox(inputImage):
     from scipy import ndimage
     import numpy as np
-    # You need to explore this more, this function isnt working properly i dont think
 
     if np.max(inputImage) > 0:
+        #Order is topY, bottomY, leftX, rightX
         return np.array([min(np.where(np.transpose(inputImage) > 10)[0]), max(np.where(inputImage > 10)[1]), min(np.where(inputImage > 10)[0]), max(np.where(np.transpose(inputImage) > 10)[1])])
     else:
         return np.array([256, 256, 256, 256])

@@ -16,7 +16,7 @@ from skimage import transform as tf
 centrePerImage = False
 patientList = ['PS', 'RR', 'DC', 'NS', 'PB']
 augmentedList = [True, True, True, False, True]
-augNumList = [5, 5, 5, 1, 5]
+augNumList = [10, 10, 10, 1, 10]
 tmpFolder = 'C:\\Users\\Luke\\Documents\\sharedFolder\\4YP\\4YP_Python\\tmp\\'
 if not os.path.exists(tmpFolder):
             os.mkdir(tmpFolder)
@@ -28,7 +28,9 @@ for iteration in range(len(patientList)):
     augmented = augmentedList[iteration]
     augNum = augNumList[iteration]
 
-    randomVals = np.linspace(-0.5, 0.5, augNum)
+    bulgeLocations = ['Center', 'Top', 'Bottom', 'Left', 'Right', 'Center', 'Top', 'Bottom', 'Left', 'Right']
+    bulgeDirections = [-1, -1, -1, -1, -1, 1, 1, 1, 1, 1]
+    shearValues = np.concatenate((np.linspace(-0.35, 0.35, np.floor(augNum/2)), np.linspace(-0.35, 0.35, np.ceil(augNum/2))))
 
     print('Augmenting patient ' + PatientID)
 
@@ -57,7 +59,7 @@ for iteration in range(len(patientList)):
     tmpOuterBinaryDir = tmpFolder + 'temporaryOuterBinaries/'
     tmpInnerBinaryDir = tmpFolder + 'temporaryInnerBinaries/'
 
-    for i in range(augNum):
+    for i, bulgeLocation, bulgeDirection, shearCoefficient in zip(np.linspace(0, augNum-1, augNum, dtype='int'), bulgeLocations, bulgeDirections, shearValues):
         print('Doing augmentation ' + str(i))
 
         try:
@@ -72,11 +74,8 @@ for iteration in range(len(patientList)):
         os.mkdir(tmpOuterBinaryDir)
         os.mkdir(tmpInnerBinaryDir)
 
-        # Shear adjustment parameters
-        IshearVal = 0.7 * randomVals[-1]
         # Shear adjustment
-        afine_tf = tf.AffineTransform(shear=IshearVal)
-        randomVals = np.delete(randomVals, -1)
+        afine_tf = tf.AffineTransform(shear=shearCoefficient)
 
         trueFileNum = 0
 
@@ -85,34 +84,38 @@ for iteration in range(len(patientList)):
         dicomFileList = sorted(os.listdir(dicomReadDir))
         for innerBinaryFilename, outerBinaryFilename, dicomFilename in zip(innerFileList, outerFileList, dicomFileList):
 
+            trueFileNum = trueFileNum + 1
+
             dicomFilepath = dicomReadDir + dicomFilename
             outerBinaryFilepath = outerBinaryReadDir + outerBinaryFilename
             innerBinaryFilepath = innerBinaryReadDir + innerBinaryFilename
 
             # Read the binaries
-            innerBinaryImage = Image.open(innerBinaryFilepath)
-            outerBinaryImage = Image.open(outerBinaryFilepath)
-            innerBinaryImage = misc.imread(innerBinaryFilepath)
-            outerBinaryImage = misc.imread(outerBinaryFilepath)
-
-            trueFileNum = trueFileNum + 1
+            innerBinaryImage = misc.imread(innerBinaryFilepath, flatten=True)
+            outerBinaryImage = misc.imread(outerBinaryFilepath, flatten=True)
 
             #Read the dicom into a png
             dicomImage = dicom.read_file(dicomFilepath).pixel_array
             misc.imsave(tmpFolder + 'dicomTemp.png', dicomImage)
-            dicomImage = misc.imread(tmpFolder + 'dicomTemp.png')
+            dicomImage = misc.imread(tmpFolder + 'dicomTemp.png', flatten=True)
             os.remove(tmpFolder + 'dicomTemp.png')
 
             if augmented == True:
                 # Contrast adjustment
                 dicomImage = lukesAugment(dicomImage)
 
-                # Apply transform to image data
+                # Apply the divergence transformation
+                if trueFileNum > 50 and np.max(innerBinaryImage) == 255 and not isDoubleAAA(innerBinaryImage):
+                    scaler = (np.where(np.isin(innerBinaryImage, 255))[0].size) / 100
+                    dicomImage = lukesImageDiverge(dicomImage, getImageEdgeCoordinates(innerBinaryImage, bulgeLocation), bulgeDirection*scaler)
+                    innerBinaryImage = lukesImageDiverge(innerBinaryImage, getImageEdgeCoordinates(innerBinaryImage, bulgeLocation), bulgeDirection * scaler)
+                    outerBinaryImage = lukesImageDiverge(outerBinaryImage, getImageEdgeCoordinates(innerBinaryImage, bulgeLocation), bulgeDirection * scaler)
+
+                # Apply shear to images
                 dicomImage = np.round(tf.warp(dicomImage/255, inverse_map=afine_tf)*255)
                 innerBinaryImage = np.round(tf.warp(innerBinaryImage / 255, inverse_map=afine_tf) * 255)
                 outerBinaryImage = np.round(tf.warp(outerBinaryImage / 255, inverse_map=afine_tf) * 255)
 
-                # You could rotate image or scale image here
             else:
                 dicomImage = lukesAugment(dicomImage)
 
@@ -164,6 +167,7 @@ for iteration in range(len(patientList)):
                     misc.imsave(tmpOuterBinaryDir + outerBinaryWritename, np.zeros([512, 512]))
                     misc.imsave(tmpDicomDir + dicomWritename, dicomImage)
                 else:
+                    #Image.fromarray(dicomImage).convert('RGB').save(tmpDicomDir + dicomWritename)
                     misc.imsave(tmpOuterBinaryDir + outerBinaryWritename, outerBinaryImage)
                     misc.imsave(tmpInnerBinaryDir + innerBinaryWritename, innerBinaryImage)
                     misc.imsave(tmpDicomDir + dicomWritename, dicomImage)
@@ -195,12 +199,12 @@ for iteration in range(len(patientList)):
                     outerBinaryWritename = 'NonAugment' + 'OuterBinary' + '%.3d' % trueFileNum + 'Patient' + PatientID + '.png'
                     dicomWritename = 'NonAugment' + 'Original' + '%.3d' % trueFileNum + 'Patient' + PatientID + '.png'
 
-                innerBinaryImage = misc.imread(tmpInnerBinaryDir + innerBinaryFilename)
+                innerBinaryImage = misc.imread(tmpInnerBinaryDir + innerBinaryFilename, flatten=True)
                 innerBinaryImage = innerBinaryImage[yLower:yUpper, xLower:xUpper]
                 misc.imsave(innerBinaryWriteDir + innerBinaryFilename, innerBinaryImage)
-                outerBinaryImage = misc.imread(tmpOuterBinaryDir + outerBinaryFilename)
+                outerBinaryImage = misc.imread(tmpOuterBinaryDir + outerBinaryFilename, flatten=True)
                 outerBinaryImage = outerBinaryImage[yLower:yUpper, xLower:xUpper]
-                misc.imsave(outerBinaryWriteDir + outerBinaryFilename, (outerBinaryImage - innerBinaryImage).clip(min=0))
-                dicomImage = misc.imread(tmpDicomDir + dicomFilename)
+                misc.imsave(outerBinaryWriteDir + outerBinaryFilename, lukesBinarize(outerBinaryImage - innerBinaryImage))
+                dicomImage = misc.imread(tmpDicomDir + dicomFilename, flatten=True)
                 dicomImage = dicomImage[yLower:yUpper, xLower:xUpper]
                 misc.imsave(dicomWriteDir + dicomFilename, dicomImage)
