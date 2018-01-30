@@ -29,7 +29,7 @@ for myPatientID, myNonAugmentedVersion in zip(patientList, augmentedList):
     outerFileList = sorted(os.listdir(myOuterImageDirectory))
     maxSliceNum = findLargestNumberInFolder(innerFileList)
 
-    maxAugNum = 1 if myNonAugmentedVersion else 5
+    maxAugNum = 1 if myNonAugmentedVersion else 10
 
     if not twoDVersion:
         npImageArray = np.ndarray((maxSliceNum, 5, boxSize, boxSize, 2), dtype='float32')
@@ -38,8 +38,8 @@ for myPatientID, myNonAugmentedVersion in zip(patientList, augmentedList):
 
     for augNum in range(1, maxAugNum+1):
         if not myNonAugmentedVersion:
-            workingInnerFileList = [x for x in innerFileList if 'Augment0' + str(augNum) in x]
-            workingOuterFileList = [x for x in outerFileList if 'Augment0' + str(augNum) in x]
+            workingInnerFileList = [x for x in innerFileList if ('Augment' + '%02d' % (augNum,)) in x]
+            workingOuterFileList = [x for x in outerFileList if ('Augment' + '%02d' % (augNum,)) in x]
         else:
             workingInnerFileList = innerFileList
             workingOuterFileList = outerFileList
@@ -59,7 +59,7 @@ for myPatientID, myNonAugmentedVersion in zip(patientList, augmentedList):
                 np.save(myArrayDirectory + '2DNonAugment' + 'Patient' + myPatientID + '_' + 'binary' + '.npy', npImageArray)
         else:
             if not twoDVersion:
-                np.save(myArrayDirectory + '3DAugment0' + str(augNum) + 'Patient' + myPatientID + '_' + 'binary' + '.npy', npImageArray)
+                np.save(myArrayDirectory + ('3DAugment' + '%02d' % (augNum,)) + 'Patient' + myPatientID + '_' + 'binary' + '.npy', npImageArray)
             else:
-                np.save(myArrayDirectory + '2DAugment0' + str(augNum) + 'Patient' + myPatientID + '_' + 'binary' + '.npy', npImageArray)
+                np.save(myArrayDirectory + ('2DAugment' + '%02d' % (augNum,)) + 'Patient' + myPatientID + '_' + 'binary' + '.npy', npImageArray)
         print('Saved one at augNum ' + str(augNum))

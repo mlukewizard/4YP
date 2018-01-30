@@ -90,8 +90,8 @@ for k in range(30):
     print('Validation split is ' + str(testSplit))
 
     # Concatenates the two arrays
-    img_train = np.concatenate((img_measure, img_test))
-    bm_train = np.concatenate((bm_measure, bm_test))
+    #img_train = np.concatenate((img_measure, img_test))
+    #bm_train = np.concatenate((bm_measure, bm_test))
 
     print('Building Model')
     model_list = os.listdir(model_folder)  # Checking if there is an existing model
@@ -142,6 +142,4 @@ for k in range(30):
         myBatchSize = 2
     else:
         myBatchSize = 4
-    model.fit(img_train, bm_train, batch_size=myBatchSize, initial_epoch=epoch_number, epochs=epoch_number + 1,
-                            verbose=1, shuffle=True, validation_split=testSplit,
-                            callbacks=[model_checkpoint])
+    model.fit(np.concatenate((img_measure, img_test)),np.concatenate((bm_measure, bm_test)), batch_size=myBatchSize, initial_epoch=epoch_number, epochs=epoch_number + 1, verbose=1, shuffle=True, validation_split=testSplit, callbacks=[model_checkpoint])
