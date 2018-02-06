@@ -9,8 +9,8 @@ import os
 import copy
 
 def trainModel(patientList, trainingArrayDepth, twoDVersion, boxSize, dicomFileList, trainingArrayPath, validationArrayPath, model_folder, img_test_file, bm_test_file):
-    from __future__ import print_function
-    from __future__ import division
+    from keras import backend as K
+    K.clear_session()
     from keras.callbacks import ModelCheckpoint
     from keras.models import Model, load_model
     from keras.layers import Input, Conv2D, MaxPooling2D, UpSampling2D, concatenate, ConvLSTM2D, LSTM, TimeDistributed, \
@@ -22,9 +22,8 @@ def trainModel(patientList, trainingArrayDepth, twoDVersion, boxSize, dicomFileL
     import sys
     import h5py
     from keras import optimizers
-    from random import *
-    from myModels import *
-    from keras import backend as K
+    from random import uniform, shuffle
+    from myModels import my3DModel, my2DModel
     # Defining loss only for the middle slice (if needed)
     def my_loss(y_true, y_pred):
         return K.mean(K.binary_crossentropy(y_true[:, 2, :, :, :], y_pred[:, 2, :, :, :]))
@@ -104,6 +103,7 @@ def trainModel(patientList, trainingArrayDepth, twoDVersion, boxSize, dicomFileL
         epoch_number = int(model_file.split('weights.')[1].split('-')[0])
 
         # Loads that model file
+	print('Using model: ' + model_folder + model_file)
         f_model = h5py.File(os.path.join(model_folder, model_file), 'r+')
         if 'optimizer_weights' in f_model:
             del f_model['optimizer_weights']
@@ -115,7 +115,7 @@ def trainModel(patientList, trainingArrayDepth, twoDVersion, boxSize, dicomFileL
 
     # Defines the compile settings
     if not twoDVersion:
-        model.compile(optimizer=Adam(lr=5e-4), loss=my_loss)
+        model.compile(optimizer=Adam(lr=7e-4), loss=my_loss)
     else:
         model.compile(optimizer=Adam(lr=1e-3), loss=losses.binary_crossentropy)
 
@@ -404,6 +404,7 @@ def getImageEdgeCoordinates(inputImage, edge):
         sys.exit('The edge type specified was not valid')
 
 def lukesBinarize(inputImage):
+    import numpy as np
     if np.max(inputImage) > 210:
         idx = inputImage > 210
         inputImage[idx] = 255

@@ -1,5 +1,7 @@
 import os
 from myFunctions import trainModel
+import gc
+import subprocess
 
 #Program inputs
 twoDVersion = False
@@ -23,3 +25,6 @@ else:
 dicomFileList = []
 for k in range(100):
     dicomFileList = trainModel(patientList, trainingArrayDepth, twoDVersion, boxSize, dicomFileList, trainingArrayPath, validationArrayPath, model_folder, img_test_file, bm_test_file)
+    gc.collect()
+    #subprocess.call('sudo kill -9 $(lsof /dev/nvidia*| grep python | awk \'{print $2; exit }\')', shell=True)
+    subprocess.call('/home/lukemarkham1383/gdrive-linux-x64 upload /home/lukemarkham1383/trainEnvironment/4YP_Python/programlog.txt', shell=True)
