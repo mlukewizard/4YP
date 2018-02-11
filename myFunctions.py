@@ -297,7 +297,7 @@ def ConstructArraySlice(inputFolder1, inputFolder1Dir, inputFileIndex, boxSize,i
     #print(arrayIndexes)
     for imageFiles, inputFolder, fileList, inputFolderDir in zip(doc, [inputFolder1, inputFolder2], fileLists, [inputFolder1Dir, inputFolder2Dir]):
         for i in range(len(arrayIndexes)):
-            if '.' in fileList[arrayIndexes[i]]:
+            if '.png' in fileList[arrayIndexes[i]]:
                 imageFiles.append(np.array(Image.open(inputFolderDir + fileList[arrayIndexes[i]]).convert('F')))
             else:
                 dicomImage = dicom.read_file(inputFolderDir + fileList[arrayIndexes[i]]).pixel_array
@@ -309,7 +309,8 @@ def ConstructArraySlice(inputFolder1, inputFolder1Dir, inputFileIndex, boxSize,i
                 imageFiles.append(dicomImage)
                 os.remove(tmpFolder + 'dicomTemp.png')
         if (not imageFiles[0].shape[0] == boxSize or not imageFiles[0].shape[1] == boxSize) and (centralLocation is None):
-            sys.exit('If your image isnt 144x144 then you need to tell me the central location')
+            print('The image which is being difficult is ' + fileList[arrayIndexes[i]])
+	    sys.exit('If your image isnt 144x144 then you need to tell me the central location')
         elif (not imageFiles[0].shape[0] == boxSize or not imageFiles[0].shape[1] == boxSize) and (centralLocation is not None):
             upperRow = centralLocation[0] - round(boxSize/2)
             lowerRow = upperRow + boxSize

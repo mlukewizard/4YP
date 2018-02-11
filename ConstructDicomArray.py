@@ -7,8 +7,8 @@ mac = get_mac()
 boxSize = 256
 twoDVersion = False
 
-patientList = ['NS', 'PB', 'PS', 'RR', 'DC']
-augmentedList = [True, False, False, False, False]
+patientList = ['PB', 'PS', 'RR', 'DC', 'AA', 'AD']
+augmentedList = [False, False, False, True, False, False]
 
 for myPatientID, myNonAugmentedVersion in zip(patientList, augmentedList):
     print('Constructing dicom arrays for patient ' + myPatientID)
