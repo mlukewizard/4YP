@@ -2,7 +2,7 @@ import os
 import dicom
 from shutil import copyfile
 
-folderPath = 'C:\\Users\\Luke\\Downloads\\Download+TP3+cases\\S2-35\\S2-35 TP3\\'
+folderPath = 'C:\\Users\\Luke\\Downloads\\Download+TP3+cases\\S1-14 TP3 processed\\S1-14 TP3 rearranged\\'
 generateDicomFolder = 'C:\\Users\\Luke\\Downloads\\Download+TP3+cases\\rearrangedDicoms\\'
 if not os.path.exists(generateDicomFolder):
         os.mkdir(generateDicomFolder)

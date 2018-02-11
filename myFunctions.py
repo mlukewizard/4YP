@@ -103,7 +103,7 @@ def trainModel(patientList, trainingArrayDepth, twoDVersion, boxSize, dicomFileL
         epoch_number = int(model_file.split('weights.')[1].split('-')[0])
 
         # Loads that model file
-	print('Using model: ' + model_folder + model_file)
+        print('Using model: ' + model_folder + model_file)
         f_model = h5py.File(os.path.join(model_folder, model_file), 'r+')
         if 'optimizer_weights' in f_model:
             del f_model['optimizer_weights']
@@ -230,7 +230,8 @@ def findAAABounds(wallVolume, OuterDiameter):
         print('Warning: Your algorithm is unsure about where the aneurysm ends, wall thickness suggests ' + str(points[2]) + ' and diameter suggests ' + str(points[3]))
     if abs(points[1] - points[0]) > 10:
         print('Warning: Your algorithm is unsure about where the aneurysm starts, wall thickness suggests ' + str(points[0]) + ' and diameter suggests ' + str(points[1]))
-    return [int((points[0] + points[1])/2), int((points[2] + points[3])/2)]
+    return {'AAAStart':int((points[0] + points[1])/2), 'AAAEnd':int((points[2] + points[3])/2)}
+    #return [int((points[0] + points[1])/2), int((points[2] + points[3])/2)]
 
 def isDoubleAAA(image):
     if np.max(image) != 255:
@@ -476,8 +477,23 @@ def getFolderCoM(dicomFolder):
 def lukesAugment(image):
     import numpy as np
 
+    '''
+    This is the augment for if youve normalised the image with imsave
     def f(x):
             return 135.78315*np.tanh((x-150)/70) + 132.0961
+            
+    #More relaxed normalisation
+    def f(x):
+        return 261.0482 + (-3.771016e-15 - 261.0482) / (1 + np.power(x / 74.43762, 3.03866))
+
+    #Aggresive normalisation
+    def f(x):
+        return 261.3943 + (-1.963209e-15 - 261.3943) / (1 + np.power((x / 69.10387), 2.822998))
+    '''
+
+    #Highly aggresive normalisation
+    def f(x):
+        return 255.4025 + (-7.706867e-15 - 255.4025)/(1 + np.power((x/79.25257), 5.520541))
 
     f = np.vectorize(f)  # or use a different name if you want to keep the original f
     image = f(image)
