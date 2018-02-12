@@ -5,7 +5,7 @@ import subprocess
 
 #Program inputs
 twoDVersion = False
-patientList = ['PS', 'PB', 'RR', 'DC']
+patientList = ['PS', 'PB', 'RR', 'NS', 'AA', 'AD']
 trainingArrayDepth = 300 
 augmentationsInTrainingArray = len(patientList)
 boxSize = 256
@@ -16,8 +16,8 @@ trainingArrayPath = '/home/lukemarkham1383/trainEnvironment/npArrays/training/'
 model_folder = '/home/lukemarkham1383/trainEnvironment/models/'
 
 if not twoDVersion:
-    img_test_file = '3DNonAugmentPatientNS_dicom.npy'
-    bm_test_file = '3DNonAugmentPatientNS_binary.npy'
+    img_test_file = '3DNonAugmentPatientDC_dicom.npy'
+    bm_test_file = '3DNonAugmentPatientDC_binary.npy'
 else:
     img_test_file = '2DNonAugmentPatientNS_dicom.npy'
     bm_test_file = '2DNonAugmentPatientNS_binary.npy'

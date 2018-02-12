@@ -6,9 +6,10 @@ from uuid import getnode as get_mac
 mac = get_mac()
 boxSize = 256
 twoDVersion = False
+augNum = 5
 
-patientList = ['RR', 'NS', 'PB', 'PS', 'DC']
-augmentedList = [False, True, False, False, False]
+patientList = ['AA', 'AD', 'RR', 'NS', 'PB', 'PS', 'DC']
+augmentedList = [False, False, False, False, False, False, True]
 
 for myPatientID, myNonAugmentedVersion in zip(patientList, augmentedList):
     print('Constructing binary arrays for patient ' + myPatientID)
@@ -29,7 +30,7 @@ for myPatientID, myNonAugmentedVersion in zip(patientList, augmentedList):
     outerFileList = sorted(os.listdir(myOuterImageDirectory))
     maxSliceNum = findLargestNumberInFolder(innerFileList)
 
-    maxAugNum = 1 if myNonAugmentedVersion else 10
+    maxAugNum = 1 if myNonAugmentedVersion else 5
 
     if not twoDVersion:
         npImageArray = np.ndarray((maxSliceNum, 5, boxSize, boxSize, 2), dtype='float32')
