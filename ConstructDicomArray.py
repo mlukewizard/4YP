@@ -9,6 +9,7 @@ twoDVersion = False
 
 patientList = ['PB', 'PS', 'RR', 'DC', 'AA', 'AD']
 augmentedList = [False, False, False, True, False, False]
+augNum = 5
 
 for myPatientID, myNonAugmentedVersion in zip(patientList, augmentedList):
     print('Constructing dicom arrays for patient ' + myPatientID)
@@ -26,7 +27,7 @@ for myPatientID, myNonAugmentedVersion in zip(patientList, augmentedList):
     fileList = sorted(os.listdir(myImageDirectory))
     maxSliceNum = findLargestNumberInFolder(fileList)
 
-    maxAugNum = 1 if myNonAugmentedVersion else 10
+    maxAugNum = 1 if myNonAugmentedVersion else augNum
 
     if not twoDVersion:
         npImageArray = np.ndarray((maxSliceNum, 5, boxSize, boxSize, 1), dtype='float32')

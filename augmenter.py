@@ -14,10 +14,9 @@ from scipy.ndimage.interpolation import affine_transform
 from skimage import transform as tf
 
 centrePerImage = False
-patientList = ['PB']
+patientList = ['NS']
 segmenter = 'Luke'
 augmentedList = [True]
-#augNumList = [10, 10, 1]
 augNumList = [5]
 tmpFolder = 'C:\\Users\\Luke\\Documents\\sharedFolder\\4YP\\4YP_Python\\tmp\\'
 if not os.path.exists(tmpFolder):
@@ -33,7 +32,7 @@ for iteration in range(len(patientList)):
     #bulgeLocations = ['Center', 'Top', 'Bottom', 'Left', 'Right', 'Center', 'Top', 'Bottom', 'Left', 'Right']
     #bulgeDirections = [-1, -1, -1, -1, -1, 1, 1, 1, 1, 1]
     #shearValues = np.concatenate((np.linspace(-0.35, 0.35, np.floor(augNum/2)), np.linspace(-0.35, 0.35, np.ceil(augNum/2))))
-    shearValues = np.linspace(-0.35, 0.35, augNum)
+    shearValues = np.linspace(0.30, -0.30, augNum)
 
     print('Augmenting patient ' + PatientID)
 
@@ -145,6 +144,8 @@ for iteration in range(len(patientList)):
                 yLower = int(bBox[2] - round((boxSize - bBox[3] + bBox[2]) / 2) if bBox[2] - round(
                     (boxSize - bBox[3] + bBox[2]) / 2) > 0 else 0)
                 yUpper = yLower + boxSize
+                if xLower == 0 or yLower == 0:
+                    print('WARNING: One of your lower bounds is set to 0, this likely means the image isnt fitting very well')
 
                 if np.max(innerBinaryImage) < 10 or np.max(outerBinaryImage) < 10:
                     # This is so that you dont get an image unless both of them are defined
@@ -189,6 +190,8 @@ for iteration in range(len(patientList)):
             yLower = int(bBox[2] - round((boxSize - bBox[3] + bBox[2]) / 2) if bBox[2] - round(
                 (boxSize - bBox[3] + bBox[2]) / 2) > 0 else sys.exit('Your skew is too big breh'))
             yUpper = yLower + boxSize
+            if xUpper > 511 or yUpper > 511:
+                sys.exit('Your skew is also too big brah')
 
             innerFileList = sorted(os.listdir(tmpInnerBinaryDir))
             outerFileList = sorted(os.listdir(tmpOuterBinaryDir))
@@ -215,3 +218,5 @@ for iteration in range(len(patientList)):
                 dicomImage = dicomImage[yLower:yUpper, xLower:xUpper]
                 misc.toimage(dicomImage, cmin=0.0, cmax=255).save(dicomWriteDir + dicomFilename)
                 #misc.imsave(dicomWriteDir + dicomFilename, dicomImage)
+                if any(imageShape != boxSize for imageShape in [dicomImage.shape[0], dicomImage.shape[1], innerBinaryImage.shape[0], innerBinaryImage.shape[1], outerBinaryImage.shape[0], outerBinaryImage.shape[1]]):
+                    sys.exit('The image shape isnt right for some reason!')

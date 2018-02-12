@@ -310,7 +310,7 @@ def ConstructArraySlice(inputFolder1, inputFolder1Dir, inputFileIndex, boxSize,i
                 os.remove(tmpFolder + 'dicomTemp.png')
         if (not imageFiles[0].shape[0] == boxSize or not imageFiles[0].shape[1] == boxSize) and (centralLocation is None):
             print('The image which is being difficult is ' + fileList[arrayIndexes[i]])
-	    sys.exit('If your image isnt 144x144 then you need to tell me the central location')
+            sys.exit('If your image isnt the right size then you need to tell me the central location')
         elif (not imageFiles[0].shape[0] == boxSize or not imageFiles[0].shape[1] == boxSize) and (centralLocation is not None):
             upperRow = centralLocation[0] - round(boxSize/2)
             lowerRow = upperRow + boxSize
@@ -428,8 +428,6 @@ def getFolderBoundingBox(filePath):
     import os
     import numpy as np
     from scipy import misc
-    import matplotlib.pyplot as plt
-    boxSize = 512
     cumulativeImage = np.zeros(shape=(512,512), dtype='float32')
     fileList = sorted(os.listdir(filePath))
 
@@ -437,8 +435,6 @@ def getFolderBoundingBox(filePath):
         newFile = np.array(misc.imread(filePath + filename, flatten=True))
         cumulativeImage = np.add(cumulativeImage, newFile)
 
-    #plt.imshow(cumulativeImage, cmap='gray')
-    #plt.show()
     return getImageBoundingBox(cumulativeImage)
 
 def getFolderCoM(dicomFolder):
