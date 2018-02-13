@@ -24,7 +24,7 @@ losses.my_loss = my_loss
 
 twoDVersion = False
 patientList = ['MH', 'SC']
-indexStartLocations = [0, 0]
+indexStartLocations = [25, 0]
 centralCoordinates = [[240, 256], [240, 256]] # In form [yPosition, xPosition] (remember axis is from top left)
 boxSize = 256
 
@@ -61,7 +61,7 @@ for patientID, indexStartLocation, centralCoordinate in zip(patientList, indexSt
         outerPC = np.zeros([len(dicomList), 512, 512])
         dicomPC = np.zeros([len(dicomList), 512, 512])
 
-        for loopCount, k in enumerate(range(len(dicomList))):
+        for loopCount, k in enumerate(range(indexStartLocation, len(dicomList))):
             #Predicts the location of the aneurysm
             print("Predicting slice " + str(k) + '/' + str(len(dicomList)))
 
@@ -88,13 +88,13 @@ for patientID, indexStartLocation, centralCoordinate in zip(patientList, indexSt
             dicomImage = lukesAugment(dicomImage)
 
             if not twoDVersion:
-                #misc.toimage(dicomImage, cmin=0.0, cmax=255).save((dicomToPngFolder + 'dicomToPng' + dicomList[k]).split('.dcm')[0] + '.png')
+                misc.toimage(dicomImage, cmin=0.0, cmax=255).save((dicomToPngFolder + 'dicomToPng' + dicomList[k]).split('.dcm')[0] + '.png')
                 resizedOuterImage = np.zeros([512, 512])
                 resizedOuterImage[upperRow:lowerRow, leftColumn:rightColumn] = output[0, 2, :, :, 1]
-                #misc.toimage(resizedOuterImage, cmin=0.0, cmax=255).save((outerPredictionFolder + 'outerPredicted_' + dicomList[k]).split('.dcm')[0] + '.png')
+                misc.toimage(resizedOuterImage, cmin=0.0, cmax=255).save((outerPredictionFolder + 'outerPredicted_' + dicomList[k]).split('.dcm')[0] + '.png')
                 resizedInnerImage = np.zeros([512, 512])
                 resizedInnerImage[upperRow:lowerRow, leftColumn:rightColumn] = output[0, 2, :, :, 0]
-                #misc.toimage(resizedInnerImage, cmin=0.0, cmax=255).save((innerPredictionFolder + 'innerPredicted_' + dicomList[k]).split('.dcm')[0] + '.png')
+                misc.toimage(resizedInnerImage, cmin=0.0, cmax=255).save((innerPredictionFolder + 'innerPredicted_' + dicomList[k]).split('.dcm')[0] + '.png')
 
                 outerPC[k, :, :] = resizedOuterImage
                 innerPC[k, :, :] = resizedInnerImage
