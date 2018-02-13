@@ -49,7 +49,7 @@ for patientID, indexStartLocation, centralCoordinate in zip(patientList, indexSt
         outerPredictionFolder = predictionFolder + 'outerPredictions\\'
         dicomToPngFolder = predictionFolder + 'pngs\\'
     else:
-	dicomFolder = dicomSetFolder + patientID + '_dicoms/'
+        dicomFolder = dicomSetFolder + patientID + '_dicoms/'
         predictionFolder = dicomSetFolder + patientID + '_predictions/'
         innerPredictionFolder = predictionFolder + 'innerPredictions/'
         outerPredictionFolder = predictionFolder + 'outerPredictions/'
@@ -71,6 +71,7 @@ for patientID, indexStartLocation, centralCoordinate in zip(patientList, indexSt
         outerPC = np.zeros([len(dicomList), 512, 512])
         dicomPC = np.zeros([len(dicomList), 512, 512])
 
+        indexStartLocation = max(findLargestNumberInFolder(os.listdir(outerPredictionFolder))-1, 0)
         for loopCount, k in enumerate(range(indexStartLocation, len(dicomList))):
             #Predicts the location of the aneurysm
             print("Predicting slice " + str(k) + '/' + str(len(dicomList)))
