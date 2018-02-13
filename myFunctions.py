@@ -8,6 +8,12 @@ import math
 import os
 import copy
 
+def saveNumpyArrayAsImages(numpyArray, filePath, saveString):
+
+    for i in range(numpyArray.size[0], numpyArray.size[0] + 6):
+        misc.toimage(numpyArray, cmin=0.0, cmax=255).save(filePath + saveString + str(i) + '.png')
+
+
 def trainModel(patientList, trainingArrayDepth, twoDVersion, boxSize, dicomFileList, trainingArrayPath, validationArrayPath, model_folder, img_test_file, bm_test_file):
     from keras import backend as K
     K.clear_session()
@@ -259,7 +265,7 @@ def ConstructArraySlice(inputFolder1, inputFolder1Dir, inputFileIndex, boxSize,i
     import matplotlib.pyplot as plt
     from uuid import getnode as get_mac
     mac = get_mac()
-    if mac != 176507742233701:
+    if mac != 57277338463062:
         tmpFolder = '/home/lukemarkham1383/trainEnvironment/4YP_Python/tmp/'
     else:
         tmpFolder = 'C:\\Users\\Luke\\Documents\\sharedFolder\\4YP\\4YP_Python\\tmp\\'
@@ -301,13 +307,11 @@ def ConstructArraySlice(inputFolder1, inputFolder1Dir, inputFileIndex, boxSize,i
                 imageFiles.append(np.array(Image.open(inputFolderDir + fileList[arrayIndexes[i]]).convert('F')))
             else:
                 dicomImage = dicom.read_file(inputFolderDir + fileList[arrayIndexes[i]]).pixel_array
-                misc.imsave(tmpFolder + 'dicomTemp.png', dicomImage)
+                misc.toimage(255 * (dicomImage / 4095), cmin=0.0, cmax=255).save(tmpFolder + 'dicomTemp.png')
                 dicomImage = misc.imread(tmpFolder + 'dicomTemp.png', flatten=True)
-                # plt.imshow(dicomImage, cmap='gray')
-                # plt.show()
+                os.remove(tmpFolder + 'dicomTemp.png')
                 dicomImage = lukesAugment(dicomImage)
                 imageFiles.append(dicomImage)
-                os.remove(tmpFolder + 'dicomTemp.png')
         if (not imageFiles[0].shape[0] == boxSize or not imageFiles[0].shape[1] == boxSize) and (centralLocation is None):
             print('The image which is being difficult is ' + fileList[arrayIndexes[i]])
             sys.exit('If your image isnt the right size then you need to tell me the central location')
