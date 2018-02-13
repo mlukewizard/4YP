@@ -255,7 +255,7 @@ def isDoubleAAA(image):
         if np.square(OuterTop[0] - OuterBottom[0]) + np.square(OuterTop[1] - OuterBottom[1]) < 400:
             return False
 
-def ConstructArraySlice(inputFolder1, inputFolder1Dir, inputFileIndex, boxSize,inputFolder2=None, inputFolder2Dir= 'Blank', centralLocation=None, twoDVersion = False):
+def ConstructArraySlice(inputFolder1, inputFolder1Dir, inputFileIndex, boxSize, tmpFolder, inputFolder2=None, inputFolder2Dir= 'Blank', centralLocation=None, twoDVersion = False):
     import scipy.misc as misc
     import sys
     import os
@@ -263,14 +263,6 @@ def ConstructArraySlice(inputFolder1, inputFolder1Dir, inputFileIndex, boxSize,i
     import PIL
     from PIL import Image
     import matplotlib.pyplot as plt
-    from uuid import getnode as get_mac
-    mac = get_mac()
-    if mac != 57277338463062:
-        tmpFolder = '/home/lukemarkham1383/trainEnvironment/4YP_Python/tmp/'
-    else:
-        tmpFolder = 'C:\\Users\\Luke\\Documents\\sharedFolder\\4YP\\4YP_Python\\tmp\\'
-    if not os.path.exists(tmpFolder):
-        os.mkdir(tmpFolder)
     dicomSlice = False
 
     # Just a little check
@@ -316,10 +308,10 @@ def ConstructArraySlice(inputFolder1, inputFolder1Dir, inputFileIndex, boxSize,i
             print('The image which is being difficult is ' + fileList[arrayIndexes[i]])
             sys.exit('If your image isnt the right size then you need to tell me the central location')
         elif (not imageFiles[0].shape[0] == boxSize or not imageFiles[0].shape[1] == boxSize) and (centralLocation is not None):
-            upperRow = centralLocation[0] - round(boxSize/2)
-            lowerRow = upperRow + boxSize
-            leftColumn = centralLocation[1] - round(boxSize/2)
-            rightColumn = leftColumn + boxSize
+            upperRow = int(centralLocation[0] - round(boxSize/2))
+            lowerRow = int(upperRow + boxSize)
+            leftColumn = int(centralLocation[1] - round(boxSize/2))
+            rightColumn = int(leftColumn + boxSize)
             for i in range(len(arrayIndexes)):
                 imageFiles[i] = imageFiles[i][upperRow:lowerRow, leftColumn:rightColumn]
 

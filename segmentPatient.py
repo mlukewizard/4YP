@@ -2,6 +2,7 @@ from __future__ import print_function
 from myFunctions import *
 import dicom
 import os
+import sys
 import math
 from keras.callbacks import ModelCheckpoint
 from keras.models import Model, load_model
@@ -24,27 +25,37 @@ losses.my_loss = my_loss
 
 twoDVersion = False
 patientList = ['MH', 'SC']
-indexStartLocations = [25, 0]
+indexStartLocations = [0, 0]
 centralCoordinates = [[240, 256], [240, 256]] # In form [yPosition, xPosition] (remember axis is from top left)
 boxSize = 256
 
 if mac == 57277338463062:
     tmpFolder = 'C:\\Users\\Luke\\Documents\\sharedFolder\\4YP\\4YP_Python\\tmp\\'
-    if not os.path.exists(tmpFolder):
-                os.mkdir(tmpFolder)
     model_file = 'C:\\Users\\Luke\\Documents\\sharedFolder\\4YP\Models\\12thFeb\\weights.15-0.01.h5'
     dicomSetFolder = 'C:\\Users\\Luke\\Documents\\sharedFolder\\4YP\\algoSegmentations\\'
+else:
+    tmpFolder = '/home/lukemarkham1383/segmentEnvironment/4YP_Python/tmp/'
+    model_file = '/home/lukemarkham1383/segmentEnvironment/models/weights.15-0.01.h5'
+    dicomSetFolder = '/home/lukemarkham1383/segmentEnvironment/algoSegmentations/'
 
 # Loads the model
 model = load_model(model_file)
 
 for patientID, indexStartLocation, centralCoordinate in zip(patientList, indexStartLocations, centralCoordinates):
-    dicomFolder = dicomSetFolder + patientID + '_dicoms\\'
-    predictionFolder = dicomSetFolder + patientID + '_predictions\\'
-    innerPredictionFolder = predictionFolder + 'innerPredictions\\'
-    outerPredictionFolder = predictionFolder + 'outerPredictions\\'
-    dicomToPngFolder = predictionFolder + 'pngs\\'
-
+    if mac == 57277338463062:
+        dicomFolder = dicomSetFolder + patientID + '_dicoms\\'
+        predictionFolder = dicomSetFolder + patientID + '_predictions\\'
+        innerPredictionFolder = predictionFolder + 'innerPredictions\\'
+        outerPredictionFolder = predictionFolder + 'outerPredictions\\'
+        dicomToPngFolder = predictionFolder + 'pngs\\'
+    else:
+	dicomFolder = dicomSetFolder + patientID + '_dicoms/'
+        predictionFolder = dicomSetFolder + patientID + '_predictions/'
+        innerPredictionFolder = predictionFolder + 'innerPredictions/'
+        outerPredictionFolder = predictionFolder + 'outerPredictions/'
+        dicomToPngFolder = predictionFolder + 'pngs/'
+    [os.mkdir(myFolder) for myFolder in [tmpFolder, predictionFolder, innerPredictionFolder, outerPredictionFolder, dicomToPngFolder] if not os.path.exists(myFolder)]
+    
     dicomList = sorted(os.listdir(dicomFolder))
     print('You should check the following are in alphabetical/numerical order')
     print(dicomList[0])
@@ -54,7 +65,6 @@ for patientID, indexStartLocation, centralCoordinate in zip(patientList, indexSt
     if not all(os.path.exists(myFolder) for myFolder in [dicomToPngFolder + patientID + '_dicomArray' + '.npy', innerPredictionFolder + patientID + '_innerBinaryArray' + '.npy',
                                                      outerPredictionFolder + patientID + '_outerBinaryArray' + '.npy', dicomToPngFolder]):
         print('No previously made numpy arrays found')
-        [os.mkdir(myFolder) for myFolder in [predictionFolder, innerPredictionFolder, outerPredictionFolder, dicomToPngFolder] if not os.path.exists(myFolder)]
 
         #Initialises the pointCloud
         innerPC = np.zeros([len(dicomList), 512, 512])
@@ -67,18 +77,18 @@ for patientID, indexStartLocation, centralCoordinate in zip(patientList, indexSt
 
             #Constructing a suitable array to feeed to the algorithm so it can segment the slice in question
             if not twoDVersion:
-                modelInputArray = np.expand_dims(ConstructArraySlice(dicomList, dicomFolder, k, boxSize, centralLocation=centralCoordinate), axis=0)
+                modelInputArray = np.expand_dims(ConstructArraySlice(dicomList, dicomFolder, k, boxSize, tmpFolder, centralLocation=centralCoordinate), axis=0)
             else:
-                modelInputArray = np.expand_dims(ConstructArraySlice(dicomList, dicomFolder, k, boxSize, centralLocation=centralCoordinate, twoDVersion=True), axis=0)
+                modelInputArray = np.expand_dims(ConstructArraySlice(dicomList, dicomFolder, k, boxSize, tmpFolder,  centralLocation=centralCoordinate, twoDVersion=True), axis=0)
 
             #Uses the algorithm to predict the location of the aneurysm
             output = model.predict(modelInputArray)*255
 
             #Gets the location of the 256x256 box in the 512x512 image
-            upperRow = centralCoordinate[0] - round(boxSize / 2)
-            lowerRow = upperRow + boxSize
-            leftColumn = centralCoordinate[1] - round(boxSize / 2)
-            rightColumn = leftColumn + boxSize
+            upperRow = int(centralCoordinate[0] - round(boxSize / 2))
+            lowerRow = int(upperRow + boxSize)
+            leftColumn = int(centralCoordinate[1] - round(boxSize / 2))
+            rightColumn = int(leftColumn + boxSize)
 
             #Gets a copy of the original image you're trying to segment
             dicomImage = dicom.read_file(dicomFolder + dicomList[k]).pixel_array
