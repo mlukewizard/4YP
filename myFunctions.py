@@ -8,6 +8,9 @@ import math
 import os
 import copy
 
+def clamp(n, minn, maxn):
+    return max(min(maxn, n), minn)
+
 def saveNumpyArrayAsImages(numpyArray, filePath, saveString):
 
     for i in range(numpyArray.size[0], numpyArray.size[0] + 6):

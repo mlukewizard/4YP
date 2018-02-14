@@ -120,6 +120,8 @@ for patientID, indexStartLocation, centralCoordinate in zip(patientList, indexSt
                 newLocation = ndimage.measurements.center_of_mass(resizedInnerImage + resizedOuterImage)
             centralCoordinate = [int(centralCoordinate[0] + (newLocation[0]-centralCoordinate[0])/np.power(loopCount+1, 0.2)), int(centralCoordinate[1] + (newLocation[1]-centralCoordinate[1])/np.power(loopCount+1, 0.2))]
             #centralCoordinate = [int(centralCoordinate[0] - boxSize / 2 + round(newLocation[0])), int(centralCoordinate[1] - boxSize / 2 + round(newLocation[1]))]
+	    centralCoordinate[1] = clamp(centralCoordinate[1], 192, 320)
+	    centralCoordinate[0] = clamp(centralCoordinate[0], 192, 320)
 
         np.save(outerPredictionFolder + patientID + '_outerBinaryArray' + '.npy', outerPC)
         np.save(innerPredictionFolder + patientID + '_innerBinaryArray' + '.npy', innerPC)
