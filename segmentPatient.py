@@ -24,9 +24,9 @@ def my_loss(y_true, y_pred):
 losses.my_loss = my_loss
 
 twoDVersion = False
-patientList = ['MH', 'SC']
-indexStartLocations = [0, 0]
-centralCoordinates = [[240, 256], [240, 256]] # In form [yPosition, xPosition] (remember axis is from top left)
+patientList = ['MH']
+indexStartLocations = [0]
+centralCoordinates = [[240, 256]] # In form [yPosition, xPosition] (remember axis is from top left)
 boxSize = 256
 
 if mac == 57277338463062:
@@ -119,9 +119,8 @@ for patientID, indexStartLocation, centralCoordinate in zip(patientList, indexSt
             else:
                 newLocation = ndimage.measurements.center_of_mass(resizedInnerImage + resizedOuterImage)
             centralCoordinate = [int(centralCoordinate[0] + (newLocation[0]-centralCoordinate[0])/np.power(loopCount+1, 0.2)), int(centralCoordinate[1] + (newLocation[1]-centralCoordinate[1])/np.power(loopCount+1, 0.2))]
-            #centralCoordinate = [int(centralCoordinate[0] - boxSize / 2 + round(newLocation[0])), int(centralCoordinate[1] - boxSize / 2 + round(newLocation[1]))]
-	    centralCoordinate[1] = clamp(centralCoordinate[1], 192, 320)
-	    centralCoordinate[0] = clamp(centralCoordinate[0], 192, 320)
+            centralCoordinate[1] = clamp(centralCoordinate[1], 192, 320)
+            centralCoordinate[0] = clamp(centralCoordinate[0], 192, 320)
 
         np.save(outerPredictionFolder + patientID + '_outerBinaryArray' + '.npy', outerPC)
         np.save(innerPredictionFolder + patientID + '_innerBinaryArray' + '.npy', innerPC)
@@ -132,9 +131,36 @@ for patientID, indexStartLocation, centralCoordinate in zip(patientList, indexSt
         innerPC = np.load(innerPredictionFolder + patientID + '_innerBinaryArray' + '.npy')
         outerPC = np.load(outerPredictionFolder + patientID + '_outerBinaryArray' + '.npy')
 
-    for i in range(outerPC.shape[0]):
-        misc.toimage(outerPC[i, :, :], cmin=0.0, cmax=255).save((outerPredictionFolder + 'outerPredicted_' + dicomList[i]).split('.dcm')[0] + '.png')
-    for i in range(innerPC.shape[0]):
-        misc.toimage(innerPC[i, :, :], cmin=0.0, cmax=255).save((innerPredictionFolder + 'innerPredicted_' + dicomList[i]).split('.dcm')[0] + '.png')
-    for i in range(outerPC.shape[0]):
-        misc.toimage(dicomPC[i, :, :], cmin=0.0, cmax=255).save((dicomToPngFolder + 'dicomToPng_' + dicomList[i]).split('.dcm')[0] + '.png')
+    #for i in range(outerPC.shape[0]):
+    #    misc.toimage(outerPC[i, :, :], cmin=0.0, cmax=255).save((outerPredictionFolder + 'outerPredicted_' + dicomList[i]).split('.dcm')[0] + '.png')
+    #for i in range(innerPC.shape[0]):
+    #    misc.toimage(innerPC[i, :, :], cmin=0.0, cmax=255).save((innerPredictionFolder + 'innerPredicted_' + dicomList[i]).split('.dcm')[0] + '.png')
+    #for i in range(outerPC.shape[0]):
+    #    misc.toimage(dicomPC[i, :, :], cmin=0.0, cmax=255).save((dicomToPngFolder + 'dicomToPng_' + dicomList[i]).split('.dcm')[0] + '.png')
+
+        #Making the outer point cloud solid
+        outerPC = outerPC + innerPC
+
+        print('Cleaning up the inner point cloud')
+        #Cleans up the inner point cloud
+        innerPC = np.where(innerPC > 140, 255, 0)
+        innerPC, num_features = ndimage.label(innerPC)
+        labelCounts = []
+        for i in range(num_features):
+            labelCounts.append(len(np.where(innerPC == i)[0]))
+        maxIndex = labelCounts.index(max(labelCounts))
+        innerPC = np.where(innerPC == maxIndex, 0, 255)
+        for i in range(innerPC.shape[0]):
+            innerPC[i, :, :] = ndimage.binary_dilation(ndimage.binary_erosion(innerPC[i, :, :]))
+
+        print('Cleaning up the outer point cloud')
+        outerPC = np.where(outerPC > 140, 255, 0)
+        outerPC, num_features = ndimage.label(outerPC)
+        labelCounts = []
+        for i in range(num_features):
+            labelCounts.append(len(np.where(outerPC == i)[0]))
+        maxIndex = labelCounts.index(max(labelCounts))
+        outerPC = np.where(outerPC == maxIndex, 0, 255)
+        for i in range(outerPC.shape[0]):
+            outerPC[i, :, :] = ndimage.binary_dilation(ndimage.binary_erosion(outerPC[i, :, :]))
+            outerPC[i, :, :] = ndimage.binary_dilation(ndimage.binary_erosion(outerPC[i, :, :]))
