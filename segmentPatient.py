@@ -2,6 +2,7 @@ from __future__ import print_function
 from myFunctions import *
 import dicom
 import os
+import time
 import sys
 import math
 from keras.callbacks import ModelCheckpoint
@@ -72,9 +73,11 @@ for patientID, indexStartLocation, centralCoordinate in zip(patientList, indexSt
         dicomPC = np.zeros([len(dicomList), 512, 512])
 
         indexStartLocation = max(findLargestNumberInFolder(os.listdir(outerPredictionFolder))-1, 0)
+	loopStartTime = time.time()
         for loopCount, k in enumerate(range(indexStartLocation, len(dicomList))):
             #Predicts the location of the aneurysm
-            print("Predicting slice " + str(k) + '/' + str(len(dicomList)))
+            secondsRemaining = (len(dicomList) - k)*(time.time() - loopStartTime)/(loopCount+1)
+            print("Predicting slice " + str(k) + '/' + str(len(dicomList)) + " Estimated time remaining: " + str(int(np.floor(secondsRemaining/60))) + " minutes and " + str(int(((secondsRemaining/60) - np.floor(secondsRemaining/60))*60)) + " seconds")
 
             #Constructing a suitable array to feeed to the algorithm so it can segment the slice in question
             if not twoDVersion:
