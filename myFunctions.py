@@ -55,7 +55,7 @@ def trainModel(patientList, trainingArrayDepth, twoDVersion, boxSize, dicomFileL
     import h5py
     from keras import optimizers
     from random import uniform, shuffle
-    from myModels import my3DModel, my2DModel
+    from myModels import my3DModel, my2DModel, my3DModelDoubled
     # Defining loss only for the middle slice (if needed)
     def my_loss(y_true, y_pred):
         return K.mean(K.binary_crossentropy(y_true[:, 2, :, :, :], y_pred[:, 2, :, :, :]))
