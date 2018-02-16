@@ -117,7 +117,7 @@ def trainModel(patientList, trainingArrayDepth, twoDVersion, boxSize, dicomFileL
 
         # Get the model you want to use from the models bank
         if not twoDVersion:
-            model = my3DModel(boxSize)
+            model = my3DModelDoubled(boxSize)
         else:
             model = my2DModel(boxSize)
 
