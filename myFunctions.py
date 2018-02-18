@@ -117,7 +117,7 @@ def trainModel(patientList, trainingArrayDepth, twoDVersion, boxSize, dicomFileL
 
         # Get the model you want to use from the models bank
         if not twoDVersion:
-            model = my3DModelDoubled(boxSize)
+            model = my3DModel(boxSize)
         else:
             model = my2DModel(boxSize)
 
@@ -147,7 +147,7 @@ def trainModel(patientList, trainingArrayDepth, twoDVersion, boxSize, dicomFileL
 
     # Defines the compile settings
     if not twoDVersion:
-        model.compile(optimizer=Adam(lr=7e-4), loss=my_loss)
+        model.compile(optimizer=Adam(lr=2e-4), loss=my_loss)
     else:
         model.compile(optimizer=Adam(lr=1e-3), loss=losses.binary_crossentropy)
 
