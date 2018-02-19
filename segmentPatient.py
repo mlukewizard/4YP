@@ -46,16 +46,20 @@ for patientID, indexStartLocation, centralCoordinate in zip(patientList, indexSt
     if mac == 57277338463062:
         dicomFolder = dicomSetFolder + patientID + '_dicoms\\'
         predictionFolder = dicomSetFolder + patientID + '_predictions\\'
+        algoInnerFolder = predictionFolder + 'algoInnerOutput\\'
+        algoOuterFolder = predictionFolder + 'algoOuterOutput\\'
         innerPredictionFolder = predictionFolder + 'innerPredictions\\'
         outerPredictionFolder = predictionFolder + 'outerPredictions\\'
         dicomToPngFolder = predictionFolder + 'pngs\\'
     else:
         dicomFolder = dicomSetFolder + patientID + '_dicoms/'
         predictionFolder = dicomSetFolder + patientID + '_predictions/'
-        innerPredictionFolder = predictionFolder + 'innerPredictions/'
+        algoOuterFolder = predictionFolder + 'algoOuterOutput/'
+        algoInnerFolder = predictionFolder + 'algoInnerOutput/'
         outerPredictionFolder = predictionFolder + 'outerPredictions/'
+        innerPredictionFolder = predictionFolder + 'innerPredictions/'
         dicomToPngFolder = predictionFolder + 'pngs/'
-    [os.mkdir(myFolder) for myFolder in [tmpFolder, predictionFolder, innerPredictionFolder, outerPredictionFolder, dicomToPngFolder] if not os.path.exists(myFolder)]
+    [os.mkdir(myFolder) for myFolder in [tmpFolder, predictionFolder, innerPredictionFolder, outerPredictionFolder, dicomToPngFolder, algoInnerFolder, algoOuterFolder] if not os.path.exists(myFolder)]
     
     dicomList = sorted(os.listdir(dicomFolder))
     print('You should check the following are in alphabetical/numerical order')
@@ -105,10 +109,10 @@ for patientID, indexStartLocation, centralCoordinate in zip(patientList, indexSt
                 misc.toimage(dicomImage, cmin=0.0, cmax=255).save((dicomToPngFolder + 'dicomToPng' + dicomList[k]).split('.dcm')[0] + '.png')
                 resizedOuterImage = np.zeros([512, 512])
                 resizedOuterImage[upperRow:lowerRow, leftColumn:rightColumn] = output[0, 2, :, :, 1]
-                misc.toimage(resizedOuterImage, cmin=0.0, cmax=255).save((outerPredictionFolder + 'outerPredicted_' + dicomList[k]).split('.dcm')[0] + '.png')
+                misc.toimage(resizedOuterImage, cmin=0.0, cmax=255).save((algoOuterFolder + 'outerPredicted_' + dicomList[k]).split('.dcm')[0] + '.png')
                 resizedInnerImage = np.zeros([512, 512])
                 resizedInnerImage[upperRow:lowerRow, leftColumn:rightColumn] = output[0, 2, :, :, 0]
-                misc.toimage(resizedInnerImage, cmin=0.0, cmax=255).save((innerPredictionFolder + 'innerPredicted_' + dicomList[k]).split('.dcm')[0] + '.png')
+                misc.toimage(resizedInnerImage, cmin=0.0, cmax=255).save((algoInnerFolder + 'innerPredicted_' + dicomList[k]).split('.dcm')[0] + '.png')
 
                 outerPC[k, :, :] = resizedOuterImage
                 innerPC[k, :, :] = resizedInnerImage
@@ -125,21 +129,14 @@ for patientID, indexStartLocation, centralCoordinate in zip(patientList, indexSt
             centralCoordinate[1] = clamp(centralCoordinate[1], 192, 320)
             centralCoordinate[0] = clamp(centralCoordinate[0], 192, 320)
 
-        np.save(outerPredictionFolder + patientID + '_outerBinaryArray' + '.npy', outerPC)
-        np.save(innerPredictionFolder + patientID + '_innerBinaryArray' + '.npy', innerPC)
-        np.save(dicomToPngFolder + patientID + '_dicomArray' + '.npy', dicomPC)
+        np.save(predictionFolder + patientID + '_outerBinaryArray' + '.npy', outerPC)
+        np.save(predictionFolder + patientID + '_innerBinaryArray' + '.npy', innerPC)
+        np.save(predictionFolder + patientID + '_dicomArray' + '.npy', dicomPC)
     else:
         print('Using previously constructed numpy arrays')
-        dicomPC = np.load(dicomToPngFolder + patientID + '_dicomArray' + '.npy')
-        innerPC = np.load(innerPredictionFolder + patientID + '_innerBinaryArray' + '.npy')
-        outerPC = np.load(outerPredictionFolder + patientID + '_outerBinaryArray' + '.npy')
-
-    #for i in range(outerPC.shape[0]):
-    #    misc.toimage(outerPC[i, :, :], cmin=0.0, cmax=255).save((outerPredictionFolder + 'outerPredicted_' + dicomList[i]).split('.dcm')[0] + '.png')
-    #for i in range(innerPC.shape[0]):
-    #    misc.toimage(innerPC[i, :, :], cmin=0.0, cmax=255).save((innerPredictionFolder + 'innerPredicted_' + dicomList[i]).split('.dcm')[0] + '.png')
-    #for i in range(outerPC.shape[0]):
-    #    misc.toimage(dicomPC[i, :, :], cmin=0.0, cmax=255).save((dicomToPngFolder + 'dicomToPng_' + dicomList[i]).split('.dcm')[0] + '.png')
+        dicomPC = np.load(predictionFolder + patientID + '_dicomArray' + '.npy')
+        innerPC = np.load(predictionFolder + patientID + '_innerBinaryArray' + '.npy')
+        outerPC = np.load(predictionFolder + patientID + '_outerBinaryArray' + '.npy')
 
         #Making the outer point cloud solid
         outerPC = outerPC + innerPC
@@ -188,3 +185,10 @@ for patientID, indexStartLocation, centralCoordinate in zip(patientList, indexSt
         np.save(predictionFolder + patientID + 'ThickInnerPointCloud' + '.npy', innerPC)
         print('Writing Outer Point Cloud')
         np.save(predictionFolder + patientID + 'ThickOuterPointCloud' + '.npy', outerPC)
+
+        for i in range(outerPC.shape[0]):
+            misc.toimage(outerPC[i, :, :], cmin=0.0, cmax=255).save((outerPredictionFolder + 'outerPredictedCleaned_' + dicomList[i]).split('.dcm')[0] + '.png')
+        for i in range(innerPC.shape[0]):
+            misc.toimage(innerPC[i, :, :], cmin=0.0, cmax=255).save((innerPredictionFolder + 'innerPredictedCleaned_' + dicomList[i]).split('.dcm')[0] + '.png')
+        for i in range(outerPC.shape[0]):
+            misc.toimage(dicomPC[i, :, :], cmin=0.0, cmax=255).save((dicomToPngFolder + 'dicomToPng_' + dicomList[i]).split('.dcm')[0] + '.png')
