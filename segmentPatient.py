@@ -36,7 +36,7 @@ if mac == 176507742233701:
     dicomSetFolder = 'C:/Users/Luke/Documents/sharedFolder/4YP/algoSegmentations/'
 else:
     tmpFolder = '/home/lukemarkham1383/segmentEnvironment/4YP_Python/tmp/'
-    model_file = '/home/lukemarkham1383/segmentEnvironment/models/weights.15-0.01.h5'
+    model_file = '/home/lukemarkham1383/segmentEnvironment/models/weights.40-0.01.h5'
     dicomSetFolder = '/home/lukemarkham1383/segmentEnvironment/algoSegmentations/'
 
 # Loads the model
