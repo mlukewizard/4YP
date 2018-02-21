@@ -6,7 +6,11 @@ from uuid import getnode as get_mac
 mac = get_mac()
 boxSize = 256
 twoDVersion = False
-augNum = 5
+augNum = 10
+if mac == 176507742233701:
+    tmpFolder = 'C:/Users/Luke/Documents/sharedFolder/4YP/4YP_Python/tmp/'
+else:
+    tmpFolder = '/home/lukemarkham1383/trainEnvironment/4YP_Python/tmp/'
 
 patientList = ['AA', 'AD', 'AJ', 'NS', 'PB', 'PS', 'RR', 'DC', 'AG']
 augmentedList = [False, False, False, False, False, False, False, True, True]
@@ -30,7 +34,7 @@ for myPatientID, myNonAugmentedVersion in zip(patientList, augmentedList):
     outerFileList = sorted(os.listdir(myOuterImageDirectory))
     maxSliceNum = findLargestNumberInFolder(innerFileList)
 
-    maxAugNum = 1 if myNonAugmentedVersion else 5
+    maxAugNum = 1 if myNonAugmentedVersion else augNum
 
     if not twoDVersion:
         npImageArray = np.ndarray((maxSliceNum, 5, boxSize, boxSize, 2), dtype='float32')
@@ -47,10 +51,10 @@ for myPatientID, myNonAugmentedVersion in zip(patientList, augmentedList):
 
         for j in range(maxSliceNum):
             if not twoDVersion:
-                npImageArray[j, :, :, :, :] = ConstructArraySlice(workingInnerFileList, myInnerImageDirectory,  j, boxSize, inputFolder2 = workingOuterFileList, inputFolder2Dir = myOuterImageDirectory)
+                npImageArray[j, :, :, :, :] = ConstructArraySlice(workingInnerFileList, myInnerImageDirectory,  j, boxSize, tmpFolder, inputFolder2 = workingOuterFileList, inputFolder2Dir = myOuterImageDirectory)
                 #saveSlice(npImageArray[j, :, :, :, :], showFig = True)
             else:
-                npImageArray[j, :, :, :] = ConstructArraySlice(workingInnerFileList, myInnerImageDirectory,  j, boxSize, inputFolder2 = workingOuterFileList, inputFolder2Dir = myOuterImageDirectory, twoDVersion = True)
+                npImageArray[j, :, :, :] = ConstructArraySlice(workingInnerFileList, myInnerImageDirectory,  j, boxSize, tmpFolder, inputFolder2 = workingOuterFileList, inputFolder2Dir = myOuterImageDirectory, twoDVersion = True)
                 #saveSlice(npImageArray[j, :, :, :], showFig = True)
 
         if myNonAugmentedVersion:

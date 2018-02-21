@@ -5,7 +5,7 @@ import subprocess
 
 #Program inputs
 twoDVersion = False
-patientList = ['PS', 'PB', 'RR', 'NS', 'AA', 'AD']
+patientList = ['PS', 'PB', 'RR', 'NS', 'AA', 'AD', 'AJ']
 trainingArrayDepth = 300
 augmentationsInTrainingArray = len(patientList)
 boxSize = 256

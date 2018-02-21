@@ -76,18 +76,22 @@ def trainModel(patientList, trainingArrayDepth, twoDVersion, boxSize, dicomFileL
 
     img_test = np.concatenate([np.delete(imtest1[0:int(imtest1.shape[0]*(2/3))], getOnePointFiveList(0, int(imtest1.shape[0]*(2/3))), axis=0),
                                np.delete(imtest2[0:int(imtest2.shape[0] * (2 / 3))], getOnePointFiveList(0, int(imtest2.shape[0] * (2 / 3))), axis=0),
-                               np.delete(imtest1[int(imtest1.shape[0] * (2 / 3)):], list(range(0, int(imtest2.shape[0] * (1 / 3)), 3)), axis=0),
-                               np.delete(imtest1[int(imtest2.shape[0] * (2 / 3)):], list(range(0, int(imtest2.shape[0] * (1 / 3)), 3)), axis=0)])
+                               np.delete(imtest1[int(imtest1.shape[0] * (2 / 3)):], list(range(0, int(imtest1.shape[0] * (1 / 3)), 3)), axis=0),
+                               np.delete(imtest2[int(imtest2.shape[0] * (2 / 3)):], list(range(0, int(imtest2.shape[0] * (1 / 3)), 3)), axis=0)])
 
     bm_test = np.concatenate([np.delete(bmtest1[0:int(bmtest1.shape[0] * (2 / 3))], getOnePointFiveList(0, int(bmtest1.shape[0] * (2 / 3))), axis=0),
                                np.delete(bmtest2[0:int(bmtest2.shape[0] * (2 / 3))], getOnePointFiveList(0, int(bmtest2.shape[0] * (2 / 3))), axis=0),
-                               np.delete(bmtest1[int(bmtest1.shape[0] * (2 / 3)):], list(range(0, int(bmtest2.shape[0] * (1 / 3)), 3)), axis=0),
-                               np.delete(bmtest1[int(bmtest2.shape[0] * (2 / 3)):], list(range(0, int(bmtest2.shape[0] * (1 / 3)), 3)), axis=0)])
+                               np.delete(bmtest1[int(bmtest1.shape[0] * (2 / 3)):], list(range(0, int(bmtest1.shape[0] * (1 / 3)), 3)), axis=0),
+                               np.delete(bmtest2[int(bmtest2.shape[0] * (2 / 3)):], list(range(0, int(bmtest2.shape[0] * (1 / 3)), 3)), axis=0)])/255
 
+   # np.save('/home/lukemarkham1383/bm_test.npy', bm_test)
+   # np.save('/home/lukemarkham1383/img_test.npy', img_test)
     del(imtest1)
     del(imtest2)
     del(bmtest1)
     del(bmtest2)
+    print('img_test has length ' + str(img_test.shape[0]))
+    print('bm_test has length ' + str(bm_test.shape[0]))
 
     # Initilising training arrays
     if not twoDVersion:
@@ -170,7 +174,7 @@ def trainModel(patientList, trainingArrayDepth, twoDVersion, boxSize, dicomFileL
 
     # Defines the compile settings
     if not twoDVersion:
-        model.compile(optimizer=Adam(lr=2e-4), loss=my_loss)
+        model.compile(optimizer=Adam(lr=4e-4), loss=my_loss)
     else:
         model.compile(optimizer=Adam(lr=1e-3), loss=losses.binary_crossentropy)
 

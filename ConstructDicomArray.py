@@ -7,9 +7,15 @@ mac = get_mac()
 boxSize = 256
 twoDVersion = False
 
+if mac == 176507742233701:
+    tmpFolder = 'C:/Users/Luke/Documents/sharedFolder/4YP/4YP_Python/tmp/'
+else:
+    tmpFolder = '/home/lukemarkham1383/trainEnvironment/4YP_Python/tmp/'
+[os.mkdir(myFolder) for myFolder in [tmpFolder] if not os.path.exists(myFolder)]
+
 patientList = ['AA', 'AD', 'AJ', 'NS', 'PB', 'PS', 'RR', 'DC', 'AG']
 augmentedList = [False, False, False, False, False, False, False, True, True]
-augNum = 5
+augNum = 10
 
 for myPatientID, myNonAugmentedVersion in zip(patientList, augmentedList):
     print('Constructing dicom arrays for patient ' + myPatientID)
@@ -41,10 +47,10 @@ for myPatientID, myNonAugmentedVersion in zip(patientList, augmentedList):
             workingFileList = fileList
         for j in range(maxSliceNum):
             if not twoDVersion:
-                npImageArray[j, :, :, :, :] = ConstructArraySlice(workingFileList, myImageDirectory, j, boxSize)
+                npImageArray[j, :, :, :, :] = ConstructArraySlice(workingFileList, myImageDirectory, j, boxSize, tmpFolder)
                 #saveSlice(npImageArray[j, :, :, :, :], showFig = True)
             else:
-                npImageArray[j, :, :, :] = ConstructArraySlice(workingFileList, myImageDirectory, j, boxSize, twoDVersion=True)
+                npImageArray[j, :, :, :] = ConstructArraySlice(workingFileList, myImageDirectory, j, boxSize, tmpFolder, twoDVersion=True)
                 #saveSlice(npImageArray[j, :, :, :], showFig = True)
 
 
