@@ -125,59 +125,60 @@ for patientID, indexStartLocation, centralCoordinate in zip(patientList, indexSt
         innerPC = np.load(predictionFolder + patientID + '_innerBinaryArray' + '.npy')
         outerPC = np.load(predictionFolder + patientID + '_outerBinaryArray' + '.npy')
 
-        #Making the outer point cloud solid
-        outerPC = outerPC + innerPC
+    #Making the outer point cloud solid
+    outerPC = outerPC + innerPC
 
-        print('Cleaning up the inner point cloud')
-        #Cleans up the inner point cloud
-        innerPC = np.where(innerPC > 140, 255, 0)
-        innerPC = getMaxConnectedComponent(innerPC)
-        for i in range(innerPC.shape[0]):
-            newPC, num_features = ndimage.label(innerPC[i, :, :])
+    print('Cleaning up the inner point cloud')
+    #Cleans up the inner point cloud
+    innerPC = np.where(innerPC > 140, 255, 0)
+    innerPC = getMaxConnectedComponent(innerPC)
+    for i in range(innerPC.shape[0]):
+        newPC, num_features = ndimage.label(innerPC[i, :, :])
+        if num_features > 2:
+            labelCounts = []
+            for i in range(num_features):
+                labelCounts.append(len(np.where(innerPC[i, :, :] == i)[0]))
+            maxIndex1 = labelCounts.index(sorted(labelCounts)[-2])
+            maxIndex2 = labelCounts.index(sorted(labelCounts)[-3])
+            innerPC[i, :, :] = np.where(innerPC[i, :, :] == maxIndex1, 255, 0) + np.where(innerPC[i, :, :] == maxIndex2, 255, 0)
+        if np.count_nonzero(innerPC[i, :, :]) > 80:
+            innerPC[i, :, :] = ndimage.binary_fill_holes(innerPC[i, :, :])
+            innerPC[i, :, :] = ndimage.binary_closing(innerPC[i, :, :], iterations = 2)
+        else:
+            innerPC[i, :, :] = np.zeros([512, 512])
+
+    print('Cleaning up the outer point cloud')
+    outerPC = np.where(outerPC > 60, 255, 0)
+    outerPC = getMaxConnectedComponent(outerPC)
+    for i in range(outerPC.shape[0]):
+        if np.count_nonzero(innerPC[i, :, :]) > 0:
+            #If theres more than 2 features, then just get the biggest two
+            newPC, num_features = ndimage.label(outerPC[i, :, :])
             if num_features > 2:
+                #Gets the largest two components
                 labelCounts = []
                 for i in range(num_features):
-                    labelCounts.append(len(np.where(innerPC[i, :, :] == i)[0]))
+                    labelCounts.append(len(np.where(outerPC[i, :, :] == i)[0]))
                 maxIndex1 = labelCounts.index(sorted(labelCounts)[-2])
                 maxIndex2 = labelCounts.index(sorted(labelCounts)[-3])
-                innerPC[i, :, :] = np.where(innerPC[i, :, :] == maxIndex1, 255, 0) + np.where(innerPC[i, :, :] == maxIndex2, 255, 0)
-            if np.count_nonzero(innerPC[i, :, :]) > 80:
-                innerPC[i, :, :] = ndimage.binary_fill_holes(innerPC[i, :, :])
-                innerPC[i, :, :] = ndimage.binary_closing(innerPC[i, :, :], iterations = 2)
-            else:
-                innerPC[i, :, :] = np.zeros([512, 512])
+                outerPC[i, :, :] = np.where(outerPC[i, :, :] == maxIndex1, 255, 0) + np.where(outerPC[i, :, :] == maxIndex2, 255, 0)
 
-        print('Cleaning up the outer point cloud')
-        outerPC = np.where(outerPC > 70, 255, 0)
-        outerPC = getMaxConnectedComponent(outerPC)
-        for i in range(outerPC.shape[0]):
-            if np.count_nonzero(innerPC[i, :, :]) > 0:
-                #If theres more than 2 features, then just get the biggest two
-                newPC, num_features = ndimage.label(outerPC[i, :, :])
-                if num_features > 2:
-                    #Gets the largest two components
-                    labelCounts = []
-                    for i in range(num_features):
-                        labelCounts.append(len(np.where(outerPC[i, :, :] == i)[0]))
-                    maxIndex1 = labelCounts.index(sorted(labelCounts)[-2])
-                    maxIndex2 = labelCounts.index(sorted(labelCounts)[-3])
-                    outerPC[i, :, :] = np.where(outerPC[i, :, :] == maxIndex1, 255, 0) + np.where(outerPC[i, :, :] == maxIndex2, 255, 0)
+            outerPC[i, :, :] = ndimage.binary_fill_holes(outerPC[i, :, :])
+            outerPC[i, :, :] = ndimage.binary_closing(outerPC[i, :, :], iterations = 4)
+        else:
+            outerPC[i, :, :] = np.zeros([512, 512])
 
-                outerPC[i, :, :] = ndimage.binary_fill_holes(outerPC[i, :, :])
-                outerPC[i, :, :] = ndimage.binary_closing(outerPC[i, :, :], iterations = 4)
-            else:
-                outerPC[i, :, :] = np.zeros([512, 512])
+    print('Writing Inner Point Cloud')
+    np.save(predictionFolder + patientID + 'ThickInnerPointCloud' + '.npy', innerPC)
+    print('Writing Outer Point Cloud')
+    np.save(predictionFolder + patientID + 'ThickOuterPointCloud' + '.npy', outerPC)
 
-        print('Writing Inner Point Cloud')
-        np.save(predictionFolder + patientID + 'ThickInnerPointCloud' + '.npy', innerPC)
-        print('Writing Outer Point Cloud')
-        np.save(predictionFolder + patientID + 'ThickOuterPointCloud' + '.npy', outerPC)
-
-        for i in range(outerPC.shape[0]):
-            if np.max(np.max(outerPC[i, :, :])) > 0:
-                outerPC[i, :, :] = outerPC[i,:,:] / np.max(np.max(outerPC[i, :, :]))
-            misc.toimage(outerPC[i, :, :], cmin=0.0, cmax=1).save((outerPredictionFolder + 'outerPredictedCleaned_' + dicomList[i]).split('.dcm')[0] + '.png')
-        for i in range(innerPC.shape[0]):
-            if np.max(np.max(innerPC[i, :, :])) > 0:
-                innerPC[i, :, :] = innerPC[i,:,:] / np.max(np.max(outerPC[i, :, :]))
-            misc.toimage(innerPC[i, :, :], cmin=0.0, cmax=1).save((innerPredictionFolder + 'innerPredictedCleaned_' + dicomList[i]).split('.dcm')[0] + '.png')
+    print('Writing cleaned images')
+    for i in range(outerPC.shape[0]):
+        if np.max(np.max(outerPC[i, :, :])) > 0:
+            outerPC[i, :, :] = outerPC[i,:,:] / np.max(np.max(outerPC[i, :, :]))
+        misc.toimage(outerPC[i, :, :], cmin=0.0, cmax=1).save((outerPredictionFolder + 'outerPredictedCleaned_' + dicomList[i]).split('.dcm')[0] + '.png')
+    for i in range(innerPC.shape[0]):
+        if np.max(np.max(innerPC[i, :, :])) > 0:
+            innerPC[i, :, :] = innerPC[i,:,:] / np.max(np.max(outerPC[i, :, :]))
+        misc.toimage(innerPC[i, :, :], cmin=0.0, cmax=1).save((innerPredictionFolder + 'innerPredictedCleaned_' + dicomList[i]).split('.dcm')[0] + '.png')

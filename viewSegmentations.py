@@ -22,9 +22,9 @@ tmpFolder = './tmp/'
 filePath = '../'
 localFiles = os.listdir(filePath)
 for file in localFiles:
-    if 'Inner' in file:
+    if 'nner' in file:
         InnerPC = np.load(filePath + file)
-    elif 'Outer' in file:
+    elif 'uter' in file:
         OuterPC = np.load(filePath + file)
     elif 'dicoms' in file:
         dicomDir = filePath + file + '/'

@@ -79,11 +79,11 @@ def diceCoefficient(image1, image2):
     return 2 * np.sum(np.logical_and(image1, image2))/(np.sum(image1) + np.sum(image2))
 
 def main():
-    compareSegmentationsFromNumpyAndFolder('C:/Users/Luke/Documents/sharedFolder/4YP/viewSegmentations/MHThickOuterPointCloud.npy', 'C:/Users/Luke/Documents/sharedFolder/4YP/algoSegmentations/MH_predictions/outerPredictions/')
-    #compareSegmentationsFromFolders('C:/Users/Luke/Documents/sharedFolder/4YP/Images/Luke_MH/preAugmentation/outerBinary/',
-    #                                'C:/Users/Luke/Documents/sharedFolder/4YP/algoSegmentations/MH_predictions/outerPredictions/',
-    #                                innerFolder1='C:/Users/Luke/Documents/sharedFolder/4YP/Images/Luke_MH/preAugmentation/innerBinary/',
-    #                                innerFolder2='C:/Users/Luke/Documents/sharedFolder/4YP/algoSegmentations/MH_predictions/innerPredictions/')
+    #compareSegmentationsFromNumpyAndFolder('C:/Users/Luke/Documents/sharedFolder/4YP/viewSegmentations/MHThickOuterPointCloud.npy', 'C:/Users/Luke/Documents/sharedFolder/4YP/algoSegmentations/MH_predictions/outerPredictions/')
+    compareSegmentationsFromFolders('C:/Users/Luke/Documents/sharedFolder/4YP/Images/Luke_MH/preAugmentation/outerBinary/',
+                                    'C:/Users/Luke/Documents/sharedFolder/4YP/algoSegmentations/MH_predictions/outerPredictions/',
+                                    innerFolder1='C:/Users/Luke/Documents/sharedFolder/4YP/Images/Luke_MH/preAugmentation/innerBinary/',
+                                    innerFolder2='C:/Users/Luke/Documents/sharedFolder/4YP/algoSegmentations/MH_predictions/innerPredictions/')
 
 if __name__ == "__main__":
     main()
