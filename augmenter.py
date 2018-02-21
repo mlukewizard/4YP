@@ -14,11 +14,16 @@ from scipy.ndimage.interpolation import affine_transform
 from skimage import transform as tf
 
 centrePerImage = False
-patientList = ['NS']
+patientList = ['AD', 'AG']
+patientList = ['AJ', 'DC']
+patientList = ['NS', 'PB']
+patientList = ['PS', 'RR']
+augmentedList = [True, False]
+augmentedList = [True, True]
+augNumList = [10, 1]
+augNumList = [10, 10]
 segmenter = 'Luke'
-augmentedList = [True]
-augNumList = [5]
-tmpFolder = 'C:\\Users\\Luke\\Documents\\sharedFolder\\4YP\\4YP_Python\\tmp\\'
+tmpFolder = 'C:\\Users\\Luke\\Documents\\sharedFolder\\4YP\\4YP_Python\\tmp4\\'
 if not os.path.exists(tmpFolder):
             os.mkdir(tmpFolder)
 boxSize = 256
@@ -29,9 +34,9 @@ for iteration in range(len(patientList)):
     augmented = augmentedList[iteration]
     augNum = augNumList[iteration]
 
-    #bulgeLocations = ['Center', 'Top', 'Bottom', 'Left', 'Right', 'Center', 'Top', 'Bottom', 'Left', 'Right']
-    #bulgeDirections = [-1, -1, -1, -1, -1, 1, 1, 1, 1, 1]
-    #shearValues = np.concatenate((np.linspace(-0.35, 0.35, np.floor(augNum/2)), np.linspace(-0.35, 0.35, np.ceil(augNum/2))))
+    bulgeLocations = ['Center', 'Top', 'Bottom', 'Left', 'Right', 'Center', 'Top', 'Bottom', 'Left', 'Right']
+    bloatBools = [False, False, False, False, False, True, True, True, True, True]
+    shearValues = np.concatenate((np.linspace(-0.35, 0.35, np.floor(augNum/2)), np.linspace(-0.35, 0.35, np.ceil(augNum/2))))
     shearValues = np.linspace(0.30, -0.30, augNum)
 
     print('Augmenting patient ' + PatientID)
@@ -59,8 +64,7 @@ for iteration in range(len(patientList)):
     tmpOuterBinaryDir = tmpFolder + 'temporaryOuterBinaries/'
     tmpInnerBinaryDir = tmpFolder + 'temporaryInnerBinaries/'
 
-    #for i, bulgeLocation, bulgeDirection, shearCoefficient in zip(np.linspace(0, augNum-1, augNum, dtype='int'), bulgeLocations, bulgeDirections, shearValues):
-    for i, shearCoefficient in zip(np.linspace(0, augNum - 1, augNum, dtype='int'), shearValues):
+    for i, bulgeLocation, bloatBool, shearCoefficient in zip(np.linspace(0, augNum-1, augNum, dtype='int'), bulgeLocations, bloatBools, shearValues):
         print('Doing augmentation ' + str(i))
 
         try:
@@ -97,11 +101,7 @@ for iteration in range(len(patientList)):
 
             #Read the dicom into a png
             dicomImage = dicom.read_file(dicomFilepath).pixel_array
-            #misc.imsave(tmpFolder + 'dicomTemp.png', dicomImage)
             misc.toimage(255*(dicomImage / 4095), cmin=0.0, cmax=255).save(tmpFolder + 'dicomTemp.png')
-            #if trueFileNum == 238:
-            #    plt.imshow(255*(dicomImage / 4095), cmap='gray')
-            #    plt.show()
             dicomImage = misc.imread(tmpFolder + 'dicomTemp.png', flatten=True)
             os.remove(tmpFolder + 'dicomTemp.png')
             if augmented == True:
@@ -109,11 +109,15 @@ for iteration in range(len(patientList)):
                 dicomImage = lukesAugment(dicomImage)
 
                 # Apply the divergence transformation
-                #if trueFileNum > 50 and np.max(innerBinaryImage) == 255 and not isDoubleAAA(innerBinaryImage):
-                #    scaler = (np.where(np.isin(outerBinaryImage + innerBinaryImage, 255))[0].size) / 200
-                #    dicomImage = lukesImageDiverge(dicomImage, getImageEdgeCoordinates(innerBinaryImage, bulgeLocation), bulgeDirection*scaler)
-                #    innerBinaryImage = lukesImageDiverge(innerBinaryImage, getImageEdgeCoordinates(innerBinaryImage, bulgeLocation), bulgeDirection * scaler)
-                #    outerBinaryImage = lukesImageDiverge(outerBinaryImage, getImageEdgeCoordinates(innerBinaryImage, bulgeLocation), bulgeDirection * scaler)
+                if np.max(innerBinaryImage) == 255:
+                    bulgeCentre = getImageEdgeCoordinates(innerBinaryImage, bulgeLocation)
+                    if bulgeLocation == 'Center':
+                        scaler = 0.3
+                    else:
+                        scaler = 0.7
+                    dicomImage = lukesImageDiverge(dicomImage, bulgeCentre, scaler, bloatBool)
+                    innerBinaryImage = lukesImageDiverge(innerBinaryImage, bulgeCentre, scaler, bloatBool)
+                    outerBinaryImage = lukesImageDiverge(outerBinaryImage, bulgeCentre, scaler, bloatBool)
 
                 # Apply shear to images
                 dicomImage = np.round(tf.warp(dicomImage/255, inverse_map=afine_tf)*255)

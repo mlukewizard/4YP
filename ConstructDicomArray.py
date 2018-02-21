@@ -7,8 +7,8 @@ mac = get_mac()
 boxSize = 256
 twoDVersion = False
 
-patientList = ['AA', 'AD', 'NS', 'PB', 'PS', 'RR', 'DC']
-augmentedList = [False, False, False, False, False, False, True]
+patientList = ['AA', 'AD', 'AJ', 'NS', 'PB', 'PS', 'RR', 'DC', 'AG']
+augmentedList = [False, False, False, False, False, False, False, True, True]
 augNum = 5
 
 for myPatientID, myNonAugmentedVersion in zip(patientList, augmentedList):

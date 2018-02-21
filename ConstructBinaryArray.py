@@ -8,8 +8,8 @@ boxSize = 256
 twoDVersion = False
 augNum = 5
 
-patientList = ['AA', 'AD', 'RR', 'NS', 'PB', 'PS', 'DC']
-augmentedList = [False, False, False, False, False, False, True]
+patientList = ['AA', 'AD', 'AJ', 'NS', 'PB', 'PS', 'RR', 'DC', 'AG']
+augmentedList = [False, False, False, False, False, False, False, True, True]
 
 for myPatientID, myNonAugmentedVersion in zip(patientList, augmentedList):
     print('Constructing binary arrays for patient ' + myPatientID)

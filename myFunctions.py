@@ -7,6 +7,7 @@ from scipy import misc
 import math
 import os
 import copy
+import sys
 
 def getMaxConnectedComponent(innerPC):
     from scipy import ndimage
@@ -39,8 +40,15 @@ def saveNumpyArrayAsImages(numpyArray, filePath, saveString):
     for i in range(numpyArray.size[0], numpyArray.size[0] + 6):
         misc.toimage(numpyArray, cmin=0.0, cmax=255).save(filePath + saveString + str(i) + '.png')
 
+def getOnePointFiveList(lower, upper):
+    first = list(range(lower, upper, 2))
+    second = list(range(lower, upper, 3))
+    inSecond = set(second)
+    inFirst = set(first)
+    inSecondNotInFirst = inSecond - inFirst
+    return sorted(first + list(inSecondNotInFirst))
 
-def trainModel(patientList, trainingArrayDepth, twoDVersion, boxSize, dicomFileList, trainingArrayPath, validationArrayPath, model_folder, img_test_file, bm_test_file):
+def trainModel(patientList, trainingArrayDepth, twoDVersion, boxSize, dicomFileList, trainingArrayPath, validationArrayPath, model_folder, img_test_files, bm_test_files):
     from keras import backend as K
     K.clear_session()
     from keras.callbacks import ModelCheckpoint
@@ -54,16 +62,32 @@ def trainModel(patientList, trainingArrayDepth, twoDVersion, boxSize, dicomFileL
     import sys
     import h5py
     from keras import optimizers
-    from random import uniform, shuffle
+    from random import uniform, shuffle, triangular
     from myModels import my3DModel, my2DModel, my3DModelDoubled
     # Defining loss only for the middle slice (if needed)
     def my_loss(y_true, y_pred):
         return K.mean(K.binary_crossentropy(y_true[:, 2, :, :, :], y_pred[:, 2, :, :, :]))
     losses.my_loss = my_loss
 
-    # Loading numpy arrays for validation
-    img_test = np.load(os.path.join(validationArrayPath, img_test_file))
-    bm_test = np.load(os.path.join(validationArrayPath, bm_test_file)) / 255
+    imtest1 = np.load(os.path.join(validationArrayPath, img_test_files[0]))
+    imtest2 = np.load(os.path.join(validationArrayPath, img_test_files[1]))
+    bmtest1 = np.load(os.path.join(validationArrayPath, bm_test_files[0]))
+    bmtest2 = np.load(os.path.join(validationArrayPath, bm_test_files[1]))
+
+    img_test = np.concatenate([np.delete(imtest1[0:int(imtest1.shape[0]*(2/3))], getOnePointFiveList(0, int(imtest1.shape[0]*(2/3))), axis=0),
+                               np.delete(imtest2[0:int(imtest2.shape[0] * (2 / 3))], getOnePointFiveList(0, int(imtest2.shape[0] * (2 / 3))), axis=0),
+                               np.delete(imtest1[int(imtest1.shape[0] * (2 / 3)):], list(range(0, int(imtest2.shape[0] * (1 / 3)), 3)), axis=0),
+                               np.delete(imtest1[int(imtest2.shape[0] * (2 / 3)):], list(range(0, int(imtest2.shape[0] * (1 / 3)), 3)), axis=0)])
+
+    bm_test = np.concatenate([np.delete(bmtest1[0:int(bmtest1.shape[0] * (2 / 3))], getOnePointFiveList(0, int(bmtest1.shape[0] * (2 / 3))), axis=0),
+                               np.delete(bmtest2[0:int(bmtest2.shape[0] * (2 / 3))], getOnePointFiveList(0, int(bmtest2.shape[0] * (2 / 3))), axis=0),
+                               np.delete(bmtest1[int(bmtest1.shape[0] * (2 / 3)):], list(range(0, int(bmtest2.shape[0] * (1 / 3)), 3)), axis=0),
+                               np.delete(bmtest1[int(bmtest2.shape[0] * (2 / 3)):], list(range(0, int(bmtest2.shape[0] * (1 / 3)), 3)), axis=0)])
+
+    del(imtest1)
+    del(imtest2)
+    del(bmtest1)
+    del(bmtest2)
 
     # Initilising training arrays
     if not twoDVersion:
@@ -74,9 +98,8 @@ def trainModel(patientList, trainingArrayDepth, twoDVersion, boxSize, dicomFileL
         bm_measure = np.ndarray((trainingArrayDepth, boxSize, boxSize, 2), dtype='float32')
 
     print('Constructing Arrays')
-    # Defining the split of slices from each of the randomly selected arrays
+    #Defining a uniform split for each of the patients which go into the array
     arraySplits = np.linspace(0, trainingArrayDepth, len(patientList) + 1, dtype='int')
-
     for i in range(len(arraySplits) - 1):
         # This while loop ensures you get a patient from each patient for each epoch
         if not dicomFileList:
@@ -95,7 +118,7 @@ def trainModel(patientList, trainingArrayDepth, twoDVersion, boxSize, dicomFileL
 
         # Randomly writes to the training arrays from the contents of the arrays of images
         for j in range(arraySplits[i + 1] - arraySplits[i]):
-            index = int(np.round(uniform(0, len(dicomFile) - 1)))
+            index = int(np.round(triangular(0, len(dicomFile) - 1, len(dicomFile) - 1)))
             if not twoDVersion:
                 img_measure[arraySplits[i] + j, :, :, :, :] = dicomFile[index]
                 bm_measure[arraySplits[i] + j, :, :, :, :] = binaryFile[index]
@@ -167,22 +190,30 @@ def trainModel(patientList, trainingArrayDepth, twoDVersion, boxSize, dicomFileL
     return dicomFileList
 
 
-def lukesImageDiverge(image, divergePoint, divergeFactor):
+def lukesImageDiverge(image, divergePoint, displacement, bloat, maxDistortionDistance = 100):
     #NB. diverge point is in [x ,y] or colNum, rowNum
     newImage = copy.deepcopy(image)
-    getCoefficient = lambda x: x/(2.5*abs(divergeFactor)) if abs(x/(2.5*abs(divergeFactor))) < 1 else 1
-    maxDistortionDistance = abs(int(2.5*divergeFactor))
-    if max(divergePoint) + maxDistortionDistance > image.shape[0] or min(divergePoint) - maxDistortionDistance < 0:
-        sys.exit('Youre trying to augment out of the image range')
+    def getCoefficient(x, maxDisplacement, maxDD):
+        if x <= maxDD and bloat == True:
+            #formulaVal = 1 - 2.801657*(x/maxDD) + 9.591573*np.power((x/maxDD), 2) - 17.44118*np.power((x/maxDD), 3) + 17.60738*np.power((x/maxDD), 4) - 6.956116*np.power((x/maxDD), 5)
+            formulaVal = 1 - maxDisplacement*((2.5/np.sqrt(2*np.pi)) * np.exp(-np.square(2.8*x/maxDD)/2) - 0.0198)
+            return formulaVal if formulaVal < 1 else 1
+        if x <= maxDD and bloat == False:
+            #formulaVal = 2 -(1 - 2.801657 * (x / maxDD) + 9.591573 * np.power((x / maxDD), 2) - 17.44118 * np.power((x / maxDD), 3) + 17.60738 * np.power((x / maxDD), 4) - 6.956116 * np.power((x / maxDD), 5))
+            formulaVal = 1 + maxDisplacement * ((2.5 / np.sqrt(2 * np.pi)) * np.exp(-np.square(2.8 * x / maxDD) / 2) - 0.0198)
+            return formulaVal if formulaVal > 1 else 1
+        else:
+            return 1
+    while divergePoint[1] + maxDistortionDistance > image.shape[0] or divergePoint[0] + maxDistortionDistance > image.shape[0] or divergePoint[1] - maxDistortionDistance < 0 or divergePoint[0] - maxDistortionDistance < 0:
+        maxDistortionDistance = maxDistortionDistance - 1
+    if maxDistortionDistance == 0:
+        sys.exit('Youre trying to augment on the border of the image you muppet')
     for i in range(divergePoint[1] - maxDistortionDistance, divergePoint[1] + maxDistortionDistance):
         for j in range(divergePoint[0] - maxDistortionDistance, divergePoint[0] + maxDistortionDistance):
             xDist = j - divergePoint[0]
             yDist = i - divergePoint[1]
-            multiplier = getCoefficient(np.sqrt(np.square(xDist) + np.square(yDist)))
-            if divergeFactor > 0:
-                newImage[i, j] = image[int(i - yDist * (1 - multiplier)), int(j - xDist * (1 - multiplier))]
-            if divergeFactor < 0:
-                newImage[i, j] = image[int(i + yDist * (1 - multiplier)), int(j + xDist * (1 - multiplier))]
+            multiplier = getCoefficient(np.sqrt(np.square(xDist) + np.square(yDist)), displacement, maxDistortionDistance)
+            newImage[i, j] = image[int(divergePoint[1] + yDist * multiplier), int(divergePoint[0] + xDist * multiplier)]
     return newImage
 
 def calcPerimeter(image):
@@ -409,19 +440,20 @@ def getImagePerimeterPoints(inputImage):
     return outputImage
 
 def getImageEdgeCoordinates(inputImage, edge):
+    #coordinates are in x, y (colNum, rowNum)
     import numpy as np
     import sys
     import copy
 
     workingImage = copy.deepcopy(inputImage)
     if edge == 'Left':
-        return np.array([np.where(np.transpose(workingImage) > 10)[0][0], np.where(np.transpose(workingImage) > 10)[1][0]])
+        return np.array([np.where(np.transpose(workingImage) > 10)[0][0] - 40, np.where(np.transpose(workingImage) > 10)[1][0]])
     elif edge == 'Right':
-        return np.array([np.where(np.transpose(workingImage) > 10)[0][-1], np.where(np.transpose(workingImage) > 10)[1][-1]])
+        return np.array([np.where(np.transpose(workingImage) > 10)[0][-1] + 40, np.where(np.transpose(workingImage) > 10)[1][-1]])
     elif edge == 'Top':
-        return np.array([np.where((workingImage) > 10)[1][0], np.where((workingImage) > 10)[0][0]])
+        return np.array([np.where((workingImage) > 10)[1][0], np.where((workingImage) > 10)[0][0] - 40])
     elif edge == 'Bottom':
-        return np.array([np.where((workingImage) > 10)[1][-1], np.where((workingImage) > 10)[0][-1]])
+        return np.array([np.where((workingImage) > 10)[1][-1], np.where((workingImage) > 10)[0][-1] + 40])
     elif edge == 'Center':
         return np.array([int((np.where(np.transpose(workingImage) > 10)[0][0] + np.where(np.transpose(workingImage) > 10)[0][-1])/2), int((np.where((workingImage) > 10)[0][-1] + np.where((workingImage) > 10)[0][0])/2)])
     else:
