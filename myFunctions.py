@@ -301,20 +301,14 @@ def findAAABounds(wallVolume, OuterDiameter):
     #return [int((points[0] + points[1])/2), int((points[2] + points[3])/2)]
 
 def isDoubleAAA(image):
+    from scipy import ndimage
     if np.max(image) != 255:
         return False
-    OuterTop = np.array(np.where(np.isin(image, 255)))[:, 0]
-    OuterBottom = np.array(np.where(np.isin(image, 255)))[:, -1]
-    continueLoop = True
-    while continueLoop:
-        x = (OuterTop - OuterBottom)/np.max(abs((OuterBottom - OuterTop)))
-        if image[OuterBottom[0] + int(x[0]), OuterBottom[1] + int(x[1])] == 255 or image[OuterBottom[0] + 2*int(x[0]), OuterBottom[1] + 2*int(x[1])] == 255 or image[OuterBottom[0] + 5*int(x[0]), OuterBottom[1] + 5*int(x[1])] == 255:
-            OuterBottom[0] = OuterBottom[0] + int(x[0])
-            OuterBottom[1] = OuterBottom[1] + int(x[1])
-        else:
-            return True
-        if np.square(OuterTop[0] - OuterBottom[0]) + np.square(OuterTop[1] - OuterBottom[1]) < 400:
-            return False
+    newPC, num_features = ndimage.label(image)
+    if num_features > 1:
+        return True
+    else:
+        return False
 
 def ConstructArraySlice(inputFolder1, inputFolder1Dir, inputFileIndex, boxSize, tmpFolder, inputFolder2=None, inputFolder2Dir= 'Blank', centralLocation=None, twoDVersion = False):
     import scipy.misc as misc
