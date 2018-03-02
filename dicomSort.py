@@ -62,6 +62,8 @@ def incrementPatientCode(patientCode):
 def checkAllSortedFolders(motherFolder):
     for subFolder in os.listdir(motherFolder):
         seriesDescriptions= []
+        if len(os.listdir(motherFolder + subFolder)) < 1:
+            print('Folder ' + motherFolder + subFolder + ' is empty')
         for file in os.listdir(motherFolder + subFolder):
             dicomFile = dicom.read_file(motherFolder + subFolder + '/' + file)
             if hasattr(dicomFile, 'SeriesDescription') and dicomFile.SeriesDescription not in seriesDescriptions:
@@ -72,7 +74,7 @@ def checkAllSortedFolders(motherFolder):
                 printString = printString + desc + ', '
             print(printString)
         else:
-            print('Folder ' + motherFolder + subFolder + ' is fine')
+            print('Folder ' + motherFolder + subFolder + ' is consistant')
 
 
 def extractAllDicomFolders(motherFilePath, patientCode, rearrangedOutputFolder = 'NaN'):
@@ -103,8 +105,9 @@ def extractAllDicomFolders(motherFilePath, patientCode, rearrangedOutputFolder =
         filePaths.pop(0)
 
 def main():
-    extractAllDicomFolders('D:/Tertiary Case Set/', 'CA', 'D:/Tertiary Case Set Rearranged/')
-    #checkAllSortedFolders('D:/Tertiary Case Set Rearranged/')
+    #extractAllDicomFolders('D:/Tertiary Case Set/', 'CA', 'D:/Tertiary Case Set Rearranged/')
+    #checkAllSortedFolders('D:/allCases/')
+    extractDicomsFromFolder('D:/Tertiary Case Set/S2-52 TP3/', 'ZX')
 
 if __name__ == '__main__':
     main()

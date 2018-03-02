@@ -9,28 +9,7 @@ import os
 import copy
 import sys
 
-def getMaxConnectedComponent(innerPC):
-    from scipy import ndimage
-    import numpy as np
-    innerPC, num_features = ndimage.label(innerPC)
-    labelCounts = []
-    for i in range(num_features):
-        labelCounts.append(len(np.where(innerPC == i)[0]))
-    maxIndex = labelCounts.index(sorted(labelCounts)[-2])
-    innerPC = np.where(innerPC == maxIndex, 255, 0)
-    return innerPC
 
-def get2MaxConnectedComponents(innerPC):
-    from scipy import ndimage
-    import numpy as np
-    innerPC, num_features = ndimage.label(innerPC)
-    labelCounts = []
-    for i in range(num_features):
-        labelCounts.append(len(np.where(innerPC == i)[0]))
-    maxIndex = labelCounts.index(sorted(labelCounts)[-2])
-    maxIndex2 = labelCounts.index(sorted(labelCounts)[-3])
-    innerPC = np.where(innerPC == maxIndex, 255, 0) + np.where(innerPC == maxIndex2, 255, 0)
-    return innerPC
 
 def clamp(n, minn, maxn):
     return max(min(maxn, n), minn)

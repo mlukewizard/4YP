@@ -7,6 +7,7 @@ import math
 from myFunctions import *
 from scipy import ndimage, signal
 from sklearn.decomposition import PCA
+import datetime
 
 def extractFeaturesFromPointClouds(ThickInnerPointCloud, ThickOuterPointCloud, renalArteryLocation):
     featureDict = {}
@@ -28,18 +29,18 @@ def extractFeaturesFromPointClouds(ThickInnerPointCloud, ThickOuterPointCloud, r
     print('Analysing features')
     for i in range(ThickInnerPointCloud.shape[0]):
         print('Analysing slice ' + str(i))
-        wallVolume.append(np.where(np.isin(wallOnlyPointCloud[i, :, :], 255))[0].size)
 
         # Get the inner parameters if the aneurysm isn't doubled up
-        if ThickInnerPointCloud[i, :, :].max() > 0:
-            if not isDoubleAAA(ThickInnerPointCloud[i, :, :]):
+        if ThickInnerPointCloud[i, :, :].max() > 0 and ThickOuterPointCloud[i, :, :].max() > 0:
+            if not isDoubleAAA(ThickInnerPointCloud[i, :, :]) and not isDoubleAAA(ThickOuterPointCloud[i, :, :]):
+                wallVolume.append(np.where(np.isin(wallOnlyPointCloud[i, :, :], 255))[0].size)
+
+                # Adds to inner series
                 innerPerimeter.append(calcPerimeter(ThickInnerPointCloud[i, :, :]))
                 innerArea.append(2 * np.sqrt(np.where(np.isin(ThickInnerPointCloud[i, :, :], 255))[0].size / math.pi))
                 innerCentreLine.append(ndimage.measurements.center_of_mass(ThickInnerPointCloud[i, :, :]))
 
-        # Get the outer parameters if the aneurysm isn't doubled up
-        if ThickOuterPointCloud[i, :, :].max() > 0:
-            if not isDoubleAAA(ThickOuterPointCloud[i, :, :]):
+                #Adds to outer series
                 outerPerimeter.append(calcPerimeter(ThickOuterPointCloud[i, :, :]))
                 outerArea.append(2 * np.sqrt(np.where(np.isin(ThickOuterPointCloud[i, :, :], 255))[0].size / math.pi))
                 outerCentreLine.append(ndimage.measurements.center_of_mass(ThickOuterPointCloud[i, :, :]))
@@ -59,21 +60,21 @@ def extractFeaturesFromPointClouds(ThickInnerPointCloud, ThickOuterPointCloud, r
 
     # Automatically detects the start and end of the AAA
     AAABounds = findAAABounds(wallVolume, outerArea)
-    maxDiaLocation = np.argmax(outerArea)
-    print('maxDiaLocation at ' + str(maxDiaLocation))
     print(AAABounds)
 
     # Calculates some simple length features
     featureDict['hSac'] = AAABounds['AAAEnd'] - AAABounds['AAAStart']
-    featureDict['hNeck'] = AAABounds['AAAStart'] - renalArteryLocation
+    featureDict['hNeck'] = AAABounds['AAAStart'] - 0
     featureDict['lSac'] = calcSegmentLength(innerCentreLine[:, AAABounds['AAAStart']: AAABounds['AAAEnd']])
-    featureDict['lNeck'] = calcSegmentLength(innerCentreLine[:, renalArteryLocation: AAABounds['AAAStart']])
-    featureDict['dOuterNeckProximal'] = outerArea[renalArteryLocation]
+    featureDict['lNeck'] = calcSegmentLength(innerCentreLine[:, 0: AAABounds['AAAStart']])
+    featureDict['dOuterNeckProximal'] = outerArea[0]
     featureDict['dOuterNeckDistal'] = outerArea[AAABounds['AAAStart']]
-    featureDict['dInnerNeckProximal'] = innerArea[renalArteryLocation]
+    featureDict['dInnerNeckProximal'] = innerArea[0]
     featureDict['dInnerNeckDistal'] = innerArea[AAABounds['AAAStart']]
     featureDict['maxOuterDiameter'] = max(outerArea)
-    featureDict['bulgeHeight'] = maxDiaLocation - renalArteryLocation
+    maxDiaLocation = np.argmax(innerArea)
+    print('maxDiaLocation at ' + str(maxDiaLocation))
+    featureDict['bulgeHeight'] = maxDiaLocation - 0 #0 is renal artery location
 
     # Gets inner and outer aortic and neck volumes
     featureDict['innerAorticVolume'] = np.where(np.isin(ThickInnerPointCloud[AAABounds['AAAStart']:AAABounds['AAAEnd'], :, :], 255))[0].size
@@ -87,6 +88,7 @@ def extractFeaturesFromPointClouds(ThickInnerPointCloud, ThickOuterPointCloud, r
     featureDict['innerTortuosity'] = calc3DTortuosity(innerCentreLine, 9)
     featureDict['outerTortuosity'] = calc3DTortuosity(outerCentreLine, 9)
 
+
     # Plots of the results
     plt.plot(innerArea)
     plt.show()
@@ -95,22 +97,32 @@ def extractFeaturesFromPointClouds(ThickInnerPointCloud, ThickOuterPointCloud, r
     ax = plt.subplot(projection='3d')
     ax.scatter(innerCentreLine[:, 0], innerCentreLine[:, 1], innerCentreLine[:, 2], zdir='z', c='red', marker='.')
     plt.show()
+
     return featureDict
 
+def turnFeatureDictsToDataFrame(dictPath):
+    listOfDics = [np.load(dictPath + dict).item() for dict in os.listdir(dictPath)]
+    listOfKeysOfDics = [set(dict.item().keys()) for dict in listOfDics]
+    uniqueKeys = set.intersection(listOfKeysOfDics)
+    print('hi')
+
+
 def main():
-    patientList = ['RR', 'PS', 'PB', 'NS', 'DC']
-    renalArteryDict = {'PS': 150, 'PB': 151, 'NS': 152, 'DC': 153, 'RR': 154}
-    patientDict = {}
-    for patientID in patientList:
+    dictPath = 'C:/Users/Luke/Documents/sharedFolder/4YP/dicts/'
+    #turnFeatureDictsToDataFrame(dictPath)
+    pointCloudParentDir = 'D:/processedCases/'
+    renalArteryDict = {'AA':150, 'CU':150, 'DC':150, 'MH':150, 'NS':150, 'PB':150, 'PS':150, 'RR':150}
+    patientListDir = sorted(os.listdir(pointCloudParentDir))
+    patientListDir = [dir for dir in patientListDir if dir[0:2] in ['AA', 'CU', 'DC', 'MH', 'NS', 'PB', 'PS', 'RR']]
+    for segmentedPatientDir in patientListDir:
+        patientID = segmentedPatientDir[0:2]
         print('Patient ' + patientID)
         print('Renal artery at ' + str(renalArteryDict[patientID]))
-        numpyPointCloudFiles = ['C:\\Users\\Luke\\Documents\\sharedFolder\\4YP\\pointClouds\\Regent_' + patientID + '\\' + patientID + 'ThickInnerPointCloud.npy',
-                                'C:\\Users\\Luke\\Documents\\sharedFolder\\4YP\\pointClouds\\Regent_' + patientID + '\\' + patientID + 'ThickOuterPointCloud.npy']
-
-        myInnerPointCloud = np.load(numpyPointCloudFiles[0])
-        myOuterPointCloud = np.load(numpyPointCloudFiles[1])
-        patientDict[patientID] = extractFeaturesFromPointClouds(myInnerPointCloud, myOuterPointCloud, renalArteryDict[patientID])
-
+        numpyPointCloudFiles = {'innerPointCloud':pointCloudParentDir + segmentedPatientDir + '/' + patientID + 'ThickInnerPointCloud.npy',
+                                'outerPointCloud': pointCloudParentDir + segmentedPatientDir + '/' + patientID + 'ThickOuterPointCloud.npy'}
+        myInnerPointCloud = np.load(numpyPointCloudFiles['innerPointCloud'])
+        myOuterPointCloud = np.load(numpyPointCloudFiles['outerPointCloud'])
+        np.save(dictPath + patientID + 'featureDict' + str(datetime.datetime.today()).split('.')[0].replace(':', '-') + '.npy', extractFeaturesFromPointClouds(myInnerPointCloud, myOuterPointCloud, renalArteryDict[patientID]))
 
 if __name__ == "__main__":
     main()

@@ -15,10 +15,13 @@ import numpy as np
 import dicom
 import sys
 import matplotlib.pyplot as plt
-import FileDialog
 
-tmpFolder = './tmp/'
-[os.mkdir(myFolder) for myFolder in [tmpFolder] if not os.path.exists(myFolder)]
+patientID = 'CS'
+dicomDir = 'D:/allCases/' + [file for file in os.listdir('D:/allCases/') if file[0:2] == patientID][0] + '/'
+InnerPC = np.load('D:/processedCases/' + patientID + '_processed/' + patientID + 'ThickInnerPointCloud.npy')
+OuterPC = np.load('D:/processedCases/' + patientID + '_processed/' + patientID + 'ThickOuterPointCloud.npy')
+
+'''
 filePath = '../'
 localFiles = os.listdir(filePath)
 for file in localFiles:
@@ -28,10 +31,10 @@ for file in localFiles:
         OuterPC = np.load(filePath + file)
     elif 'dicoms' in file:
         dicomDir = filePath + file + '/'
+'''
 
 if InnerPC.shape[0] != len(os.listdir(dicomDir)) or OuterPC.shape[0] != InnerPC.shape[0]:
     sys.exit('Your dimensions arent equal')
-
 
 root = Tk.Tk()
 root.wm_title("Segmentation viewer")
@@ -45,12 +48,6 @@ plt.axis('off')
 canvas = FigureCanvasTkAgg(f, master=root)
 canvas.show()
 canvas.get_tk_widget().pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
-
-
-def on_key_event(event):
-    print('you pressed %s' % event.key)
-
-#canvas.mpl_connect('key_press_event', on_key_event)
 
 
 def quitProgram():
@@ -104,5 +101,3 @@ button4.pack(side=Tk.BOTTOM)
 button2.pack(side=Tk.BOTTOM)
 
 Tk.mainloop()
-# If you put root.destroy() here, it will cause an error if
-# the window is closed with the window manager.
