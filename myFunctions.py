@@ -199,95 +199,7 @@ def lukesImageDiverge(image, divergePoint, displacement, bloat, maxDistortionDis
             newImage[i, j] = image[int(divergePoint[1] + yDist * multiplier), int(divergePoint[0] + xDist * multiplier)]
     return newImage
 
-def calcPerimeter(image):
-    image = shell(image)
-    whitePoints = np.array(np.where(np.isin(image, 255)))
-    perimeter = 0
-    continueSumming = True
-    currentPoint = np.zeros([2, 1], dtype='int')
-    currentPoint[0] = np.where(np.isin(image, 255))[0][0]
-    currentPoint[1] = np.where(np.isin(image, 255))[1][0]
-    while continueSumming:
-        whitePoints = whitePoints - currentPoint
-        distances = np.sqrt(np.square(whitePoints[0, :]) + np.square(whitePoints[1, :]))
-        closestIndex = np.argmin(distances)
-        perimeter = perimeter + min(distances)
-        currentPoint[0] = whitePoints[0][closestIndex]
-        currentPoint[1] = whitePoints[1][closestIndex]
-        whitePoints = np.delete(whitePoints, closestIndex, 1)
-        if len(whitePoints[0]) == 0:
-            continueSumming = False
-    return perimeter
 
-def shell(image):
-    image2 = getImagePerimeterPoints(image)
-    xPoints = np.where(np.isin(image, 255))[0]
-    yPoints = np.where(np.isin(image, 255))[1]
-    for i, j in zip(xPoints, yPoints):
-        conditionList = [image2[i, j-1] != 0, image2[i+1, j] != 0, image2[i, j+1] != 0, image2[i-1, j] != 0]
-        if sum(conditionList) > 1:
-            image2[i, j] = 0
-    return image2
-
-def calcSegmentLength(line):
-    length = 0
-    for j in range(line.shape[1]-1):
-        length = length + np.sqrt(np.square(line[0, j+1] - line[0, j]) +
-                        np.square(line[1, j+1] - line[1, j]) +
-                        np.square(line[2, j+1] - line[2, j]))
-    return length
-
-def calc3DTortuosity(centreLine, windowLength):
-    centreLineTortuosity = np.ndarray([centreLine.shape[1]])
-    halfWindow = int(math.floor(windowLength/2))
-    paddedCentreLine = np.pad(centreLine, halfWindow, 'edge')[halfWindow:-halfWindow, :]
-    for i in range(centreLine.shape[1]):
-        evalPoint = i + halfWindow
-        absoluteDistance = np.sqrt(np.square(paddedCentreLine[0, evalPoint+halfWindow] - paddedCentreLine[0, evalPoint-halfWindow]) +
-            np.square(paddedCentreLine[1, evalPoint + halfWindow] - paddedCentreLine[1, evalPoint - halfWindow]) +
-            np.square(paddedCentreLine[2, evalPoint + halfWindow] - paddedCentreLine[2, evalPoint - halfWindow]))
-        curveDistance = 0
-        for j in range(windowLength-1):
-            curveDistance = curveDistance + np.sqrt(np.square(paddedCentreLine[0, i+j+1] - paddedCentreLine[0, i+j]) +
-                                                    np.square(paddedCentreLine[1, i+j+1] - paddedCentreLine[1, i+j]) +
-                                                    np.square(paddedCentreLine[2, i+j+1] - paddedCentreLine[2, i+j]))
-        tortuosity = curveDistance / absoluteDistance
-        centreLineTortuosity[i] = tortuosity
-    return centreLineTortuosity
-
-def findAAABounds(wallVolume, OuterDiameter):
-    maxDia = len(OuterDiameter[0:-100]) + np.argmax(OuterDiameter[-100:])
-    maxVol = len(wallVolume[0:-100]) + np.argmax(wallVolume[-100:])
-    acceptableSteps = np.linspace(1, 50, 50, dtype='int').tolist()
-    timeSerieses = [wallVolume, OuterDiameter, wallVolume, OuterDiameter]
-    directions = [-1, -1, 1, 1]
-    points = []
-    maxLocations = [maxVol, maxDia, maxVol, maxDia]
-    for timeSeries, direction, start in zip(timeSerieses, directions, maxLocations):
-        looking = True
-        copyStart = copy.deepcopy(start)
-        while looking:
-            if any(((np.append(timeSeries, np.zeros(60, dtype = 'int'))[copyStart + direction*step] - np.append(timeSeries, np.zeros(60, dtype = 'int'))[copyStart])/step < -np.max(timeSeries)/200 and np.append(timeSeries, np.zeros(60, dtype = 'int'))[copyStart + direction*step] != 0) for step in acceptableSteps):
-                copyStart = copyStart + direction
-            else:
-                looking = False
-        points.append(copyStart)
-    if abs(points[3] - points[2]) > 10:
-        print('Warning: Your algorithm is unsure about where the aneurysm ends, wall thickness suggests ' + str(points[2]) + ' and diameter suggests ' + str(points[3]))
-    if abs(points[1] - points[0]) > 10:
-        print('Warning: Your algorithm is unsure about where the aneurysm starts, wall thickness suggests ' + str(points[0]) + ' and diameter suggests ' + str(points[1]))
-    return {'AAAStart':int((points[0] + points[1])/2), 'AAAEnd':int((points[2] + points[3])/2)}
-    #return [int((points[0] + points[1])/2), int((points[2] + points[3])/2)]
-
-def isDoubleAAA(image):
-    from scipy import ndimage
-    if np.max(image) != 255:
-        return False
-    newPC, num_features = ndimage.label(image)
-    if num_features > 1:
-        return True
-    else:
-        return False
 
 def ConstructArraySlice(inputFolder1, inputFolder1Dir, inputFileIndex, boxSize, tmpFolder, inputFolder2=None, inputFolder2Dir= 'Blank', centralLocation=None, twoDVersion = False):
     import scipy.misc as misc
@@ -410,11 +322,7 @@ def findSmallestNumberInFolder(list):
             smallestNum = findSmallestNumberInString(list[i])
     return smallestNum
 
-def getImagePerimeterPoints(inputImage):
-    image = Image.fromarray(inputImage)
-    image = image.filter(ImageFilter.FIND_EDGES)
-    outputImage = np.array(image)
-    return outputImage
+
 
 def getImageEdgeCoordinates(inputImage, edge):
     #coordinates are in x, y (colNum, rowNum)
