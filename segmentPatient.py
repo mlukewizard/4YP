@@ -292,7 +292,7 @@ def main():
     model = load_model(model_file)
     patientsWeHaveSegmented = [x[0:2] for x in os.listdir(bankPredictionDir)]
     patientsToSegmentList = sorted([x for x in os.listdir(bankDicomDir) if x[0:2] not in patientsWeHaveSegmented])
-    patientsWeWant = ['DU', 'EA', 'DO']
+    patientsWeWant = ['TE']
     patientsToSegmentList = sorted([x for x in os.listdir(bankDicomDir) if x[0:2] in patientsWeWant])
     print(patientsToSegmentList)
 

@@ -16,7 +16,7 @@ import dicom
 import sys
 import matplotlib.pyplot as plt
 
-patientID = 'CS'
+patientID = 'CG'
 dicomDir = 'D:/allCases/' + [file for file in os.listdir('D:/allCases/') if file[0:2] == patientID][0] + '/'
 InnerPC = np.load('D:/processedCases/' + patientID + '_processed/' + patientID + 'ThickInnerPointCloud.npy')
 OuterPC = np.load('D:/processedCases/' + patientID + '_processed/' + patientID + 'ThickOuterPointCloud.npy')
