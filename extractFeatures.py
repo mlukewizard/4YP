@@ -241,7 +241,7 @@ def main():
     pixelSpacingDict = np.load(spacingDictDir).item()
     thicknessDict = np.load(thicknessDictDir).item()
     patientListDir = sorted(os.listdir(pointCloudParentDir))
-    patientListDir = [dir for dir in patientListDir if dir[0:2] in renalArteryDict.keys()]
+    patientListDir = [dir for dir in patientListDir if dir[0:2] in renalArteryDict.keys() and 'zip' not in dir]
     #patientListDir = [dir for dir in patientListDir if dir[0:2] in ['AE']]
     print('Weve got ' + str(len(renalArteryDict.keys())) + ' patients')
     for segmentedPatientDir in patientListDir:
@@ -257,13 +257,6 @@ def main():
 
         patientFeatureDict = extractFeaturesFromPointClouds(myInnerPointCloud, myOuterPointCloud, renalArteryDict[patientID], thicknessDict[patientID], pixelSpacingDict[patientID])
         np.save(dictPath + patientID + 'featureDict' + str(datetime.datetime.today()).split('.')[0].replace(':', '-') + '.npy', patientFeatureDict)
-
-def turnFeatureDictsToDataFrame():
-    dictPath = 'C:/Users/Luke/Documents/sharedFolder/4YP/dicts'
-    listOfDics = [np.load(dictPath + dict).item() for dict in os.listdir(dictPath)]
-    listOfKeysOfDics = [set(dict.item().keys()) for dict in listOfDics]
-    uniqueKeys = set.intersection(listOfKeysOfDics)
-    print('hi')
 
 if __name__ == "__main__":
     main()

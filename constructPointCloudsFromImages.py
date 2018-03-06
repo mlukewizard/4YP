@@ -6,7 +6,7 @@ from scipy import misc
 def main():
     processedCasesDir = 'D:/processedCases/'
     processedCasesList = sorted(os.listdir(processedCasesDir))
-    processedCasesList = [dir for dir in processedCasesList if dir[0:2] in ['AE']]
+    processedCasesList = [dir for dir in processedCasesList if dir[0:2] in ['CE']]
     for i, folder in enumerate(processedCasesList):
         if not any('PointCloud' in file for file in os.listdir(processedCasesDir + folder)) and any('rediction' in file for file in os.listdir(processedCasesDir + folder)):
             patientID = folder[0:2]
