@@ -199,7 +199,14 @@ def lukesImageDiverge(image, divergePoint, displacement, bloat, maxDistortionDis
             newImage[i, j] = image[int(divergePoint[1] + yDist * multiplier), int(divergePoint[0] + xDist * multiplier)]
     return newImage
 
+def tic():
+    import time
+    currentTime = time.time()
+    return currentTime
 
+def toc(timeStarted):
+    import time
+    return time.time() - timeStarted
 
 def ConstructArraySlice(inputFolder1, inputFolder1Dir, inputFileIndex, boxSize, tmpFolder, inputFolder2=None, inputFolder2Dir= 'Blank', centralLocation=None, twoDVersion = False):
     import scipy.misc as misc

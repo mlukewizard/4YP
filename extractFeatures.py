@@ -13,9 +13,10 @@ from sklearn.decomposition import PCA
 import datetime
 from PIL import Image, ImageFilter
 
-def extractFeaturesFromPointClouds(ThickInnerPointCloud, ThickOuterPointCloud, renalArteryLocation, sliceThickness, pixelSpacing):
-    featureDict = {}
-
+def extractFeaturesFromPointClouds(patientID, ThickInnerPointCloud, ThickOuterPointCloud, renalArteryLocation, sliceThickness, pixelSpacing):
+    featureDict = {'patientID': patientID}
+    if pixelSpacing[0] != pixelSpacing[1]:
+        print('The pixel spacings are different, this is interesting')
     # Defining the wall as the area between the outer points and the inner points
     wallOnlyPointCloud = ThickOuterPointCloud - ThickInnerPointCloud
 
@@ -28,9 +29,9 @@ def extractFeaturesFromPointClouds(ThickInnerPointCloud, ThickOuterPointCloud, r
     innerCentreLine = []
     outerCentreLine = []
 
-    print('Analysing features')
+    print('Analysing features...')
     for i in range(ThickInnerPointCloud.shape[0]):
-        print('Analysing slice ' + str(i))
+        #print('Analysing slice ' + str(i))
 
         # Get the inner parameters if the aneurysm isn't doubled up
         if ThickInnerPointCloud[i, :, :].max() > 0 and ThickOuterPointCloud[i, :, :].max() > 0 and not isDoubleAAA(ThickInnerPointCloud[i, :, :]) and not isDoubleAAA(ThickOuterPointCloud[i, :, :]):
@@ -75,31 +76,33 @@ def extractFeaturesFromPointClouds(ThickInnerPointCloud, ThickOuterPointCloud, r
     print(AAABounds)
 
     # Calculates some simple length features
-    featureDict['hSac'] = AAABounds['AAAEnd'] - AAABounds['AAAStart'] * sliceThickness
-    featureDict['hNeck'] = AAABounds['AAAStart'] - renalArteryLocation
-    featureDict['lSac'] = calcSegmentLength(innerCentreLine[:, AAABounds['AAAStart']: AAABounds['AAAEnd']])
-    featureDict['lNeck'] = calcSegmentLength(innerCentreLine[:, renalArteryLocation: AAABounds['AAAStart']])
-    featureDict['dOuterNeckProximal'] = outerArea[renalArteryLocation]
-    featureDict['dOuterNeckDistal'] = outerArea[AAABounds['AAAStart']]
-    featureDict['dInnerNeckProximal'] = innerArea[renalArteryLocation]
-    featureDict['dInnerNeckDistal'] = innerArea[AAABounds['AAAStart']]
+    featureDict['hSac'] = (AAABounds['AAAEnd'] - AAABounds['AAAStart']) * sliceThickness
+    featureDict['hNeck'] = (AAABounds['AAAStart'] - renalArteryLocation) * sliceThickness
+    featureDict['lSac'] = calcSegmentLength(innerCentreLine[AAABounds['AAAStart']: AAABounds['AAAEnd'], :]) * sliceThickness
+    featureDict['lNeck'] = calcSegmentLength(innerCentreLine[renalArteryLocation: AAABounds['AAAStart'], :]) * sliceThickness
+    featureDict['dOuterAreaProximal'] = outerArea[renalArteryLocation] * pixelSpacing[0]
+    featureDict['dOuterAreaDistal'] = outerArea[AAABounds['AAAStart']] * pixelSpacing[0]
+    featureDict['dInnerAreaProximal'] = innerArea[renalArteryLocation] * pixelSpacing[0]
+    featureDict['dInnerAreaDistal'] = innerArea[AAABounds['AAAStart']] * pixelSpacing[0]
     featureDict['maxOuterArea'] = np.nanmax(outerArea) * pixelSpacing[0] * pixelSpacing[1]
-    featureDict['maxInnerArea'] = np.nanmax(outerArea) * pixelSpacing[0] * pixelSpacing[1]
+    featureDict['maxInnerArea'] = np.nanmax(innerArea) * pixelSpacing[0] * pixelSpacing[1]
     maxDiaLocation = innerArea[0:renalArteryLocation].size + np.nanargmax(innerArea[renalArteryLocation:])
     print('maxDiaLocation at ' + str(maxDiaLocation))
     featureDict['bulgeHeight'] = (maxDiaLocation - renalArteryLocation) * sliceThickness
 
     # Gets inner and outer aortic and neck volumes
-    featureDict['innerAorticVolume'] = np.where(np.isin(ThickInnerPointCloud[AAABounds['AAAStart']:AAABounds['AAAEnd'], :, :], 255))[0].size
-    featureDict['outerAorticVolume'] = np.where(np.isin(ThickOuterPointCloud[AAABounds['AAAStart']:AAABounds['AAAEnd'], :, :], 255))[0].size
-    featureDict['AAAThrombusVolume'] = np.where(np.isin(wallOnlyPointCloud[AAABounds['AAAStart']:AAABounds['AAAEnd'], :, :], 255))[0].size
-    featureDict['innerNeckVolume'] = np.where(np.isin(ThickInnerPointCloud[renalArteryLocation:AAABounds['AAAStart'], :, :], 255))[0].size
-    featureDict['outerNeckVolume'] = np.where(np.isin(ThickOuterPointCloud[renalArteryLocation:AAABounds['AAAStart'], :, :], 255))[0].size
-    featureDict['NeckThrombusVolume'] = np.where(np.isin(wallOnlyPointCloud[renalArteryLocation:AAABounds['AAAStart'], :, :], 255))[0].size
+    featureDict['innerAorticVolume'] = np.where(np.isin(ThickInnerPointCloud[AAABounds['AAAStart']:AAABounds['AAAEnd'], :, :], 255))[0].size * pixelSpacing[0] * pixelSpacing[1] * sliceThickness
+    featureDict['outerAorticVolume'] = np.where(np.isin(ThickOuterPointCloud[AAABounds['AAAStart']:AAABounds['AAAEnd'], :, :], 255))[0].size * pixelSpacing[0] * pixelSpacing[1] * sliceThickness
+    featureDict['AAAThrombusVolume'] = np.where(np.isin(wallOnlyPointCloud[AAABounds['AAAStart']:AAABounds['AAAEnd'], :, :], 255))[0].size * pixelSpacing[0] * pixelSpacing[1] * sliceThickness
+    featureDict['innerNeckVolume'] = np.where(np.isin(ThickInnerPointCloud[renalArteryLocation:AAABounds['AAAStart'], :, :], 255))[0].size * pixelSpacing[0] * pixelSpacing[1] * sliceThickness
+    featureDict['outerNeckVolume'] = np.where(np.isin(ThickOuterPointCloud[renalArteryLocation:AAABounds['AAAStart'], :, :], 255))[0].size * pixelSpacing[0] * pixelSpacing[1] * sliceThickness
+    featureDict['neckThrombusVolume'] = np.where(np.isin(wallOnlyPointCloud[renalArteryLocation:AAABounds['AAAStart'], :, :], 255))[0].size * pixelSpacing[0] * pixelSpacing[1] * sliceThickness
 
     # Finds the tortuosity of the centre lines
-    featureDict['AAAInnerTortuosity'] = calc3DTortuosity(innerCentreLine[AAABounds['AAAStart']:AAABounds['AAAEnd']], 9)
-    featureDict['AAAOuterTortuosity'] = calc3DTortuosity(outerCentreLine[AAABounds['AAAStart']:AAABounds['AAAEnd']], 9)
+    featureDict['AAAInnerTortuositySmallScale'] = calc3DTortuosity(innerCentreLine[AAABounds['AAAStart']:AAABounds['AAAEnd']], 9)
+    featureDict['AAAOuterTortuositySmallScale'] = calc3DTortuosity(outerCentreLine[AAABounds['AAAStart']:AAABounds['AAAEnd']], 9)
+    featureDict['AAAInnerTortuosityLargeScale'] = calc3DTortuosity(innerCentreLine[AAABounds['AAAStart']:AAABounds['AAAEnd']], 19)
+    featureDict['AAAOuterTortuosityLargeScale'] = calc3DTortuosity(outerCentreLine[AAABounds['AAAStart']:AAABounds['AAAEnd']], 19)
 
     '''
     # Plots of the results
@@ -173,19 +176,19 @@ def calcSegmentLength(line):
     return length
 
 def calc3DTortuosity(centreLine, windowLength):
-    centreLineTortuosity = np.ndarray([centreLine.shape[1]])
+    centreLineTortuosity = np.ndarray([centreLine.shape[0]])
     halfWindow = int(math.floor(windowLength/2))
-    paddedCentreLine = np.pad(centreLine, halfWindow, 'edge')[halfWindow:-halfWindow, :]
-    for i in range(centreLine.shape[1]):
+    paddedCentreLine = np.pad(centreLine, halfWindow, 'edge')[:, halfWindow:-halfWindow]
+    for i in range(centreLine.shape[0]):
         evalPoint = i + halfWindow
-        absoluteDistance = np.sqrt(np.square(paddedCentreLine[0, evalPoint+halfWindow] - paddedCentreLine[0, evalPoint-halfWindow]) +
-            np.square(paddedCentreLine[1, evalPoint + halfWindow] - paddedCentreLine[1, evalPoint - halfWindow]) +
-            np.square(paddedCentreLine[2, evalPoint + halfWindow] - paddedCentreLine[2, evalPoint - halfWindow]))
+        absoluteDistance = np.sqrt(np.square(paddedCentreLine[evalPoint+halfWindow, 0] - paddedCentreLine[evalPoint-halfWindow, 0]) +
+            np.square(paddedCentreLine[evalPoint + halfWindow, 1] - paddedCentreLine[evalPoint - halfWindow, 1]) +
+            np.square(paddedCentreLine[evalPoint + halfWindow, 2] - paddedCentreLine[evalPoint - halfWindow, 2]))
         curveDistance = 0
         for j in range(windowLength-1):
-            curveDistance = curveDistance + np.sqrt(np.square(paddedCentreLine[0, i+j+1] - paddedCentreLine[0, i+j]) +
-                                                    np.square(paddedCentreLine[1, i+j+1] - paddedCentreLine[1, i+j]) +
-                                                    np.square(paddedCentreLine[2, i+j+1] - paddedCentreLine[2, i+j]))
+            curveDistance = curveDistance + np.sqrt(np.square(paddedCentreLine[i+j+1, 0] - paddedCentreLine[i+j, 0]) +
+                                                    np.square(paddedCentreLine[i+j+1, 1] - paddedCentreLine[i+j, 1]) +
+                                                    np.square(paddedCentreLine[i+j+1, 2] - paddedCentreLine[i+j, 2]))
         tortuosity = curveDistance / absoluteDistance
         centreLineTortuosity[i] = tortuosity
     return centreLineTortuosity
@@ -193,8 +196,6 @@ def calc3DTortuosity(centreLine, windowLength):
 def findAAABounds(wallVolume, OuterArea, renalArteryLocation):
     maxDia = len(OuterArea[0:renalArteryLocation]) + np.nanargmax(OuterArea[renalArteryLocation:])
     maxVol = len(wallVolume[0:renalArteryLocation]) + np.nanargmax(wallVolume[renalArteryLocation:])
-    if maxDia == maxVol:
-        print('This is probably incorrect')
     acceptableSteps = np.linspace(1, 50, 50, dtype='int').tolist()
     timeSerieses = [wallVolume, OuterArea, wallVolume, OuterArea]
     directions = [-1, -1, 1, 1]
@@ -213,9 +214,10 @@ def findAAABounds(wallVolume, OuterArea, renalArteryLocation):
         print('Warning: Your algorithm is unsure about where the aneurysm ends, wall thickness suggests ' + str(points[2]) + ' and area suggests ' + str(points[3]))
     if abs(points[1] - points[0]) > 10:
         print('Warning: Your algorithm is unsure about where the aneurysm starts, wall thickness suggests ' + str(points[0]) + ' and area suggests ' + str(points[1]))
-    return {'AAAStart':int((points[0] + points[1])/2), 'AAAEnd':int((points[2] + points[3])/2)}
-    #return [int((points[0] + points[1])/2), int((points[2] + points[3])/2)]
-
+    if int((points[0] + points[1])/2) > renalArteryLocation:
+        return {'AAAStart': int((points[0] + points[1])/2), 'AAAEnd':int((points[2] + points[3])/2)}
+    else:
+        return {'AAAStart': renalArteryLocation+3, 'AAAEnd': int((points[2] + points[3]) / 2)}
 def isDoubleAAA(image):
     from scipy import ndimage
     if np.max(image) != 255:
@@ -237,16 +239,23 @@ def main():
                        'AJ': 205, 'CC': 100, 'CE': 263, 'CG': 259, 'CI': 276, 'CK': 208, 'CM': 272, 'CO': 266, 'CQ': 245, 'CS': 200, 'CU': 266, 'CW': 237, 'XC': 239,
                        'DK': 282, 'DM': 250, 'DQ': 252, 'DW': 261, 'EI': 272, 'EK': 234, 'EO': 274, 'EQ': 259, 'ES': 290, 'EU': 234, 'EY': 348, 'FA': 251, 'FG': 86,
                        'FI': 261, 'FO': 237, 'FQ': 238, 'FS': 252, 'FW': 238, 'GA': 240, 'YC': 221, 'GQ': 85, 'GY': 118, 'HA': 275, 'HC': 274, 'HG': 223, 'HI': 289,
-                       'HS': 241, }
+                       'HS': 241, 'HW': 263}
+    TPThreeDict = {'AD': -1.944, 'AA': -2.47, 'CC': 0.84, 'FS': -1.944, 'CE': 1.1173, 'FW': 0.96, 'CG': 2.8759, 'CI': 2.0778, 'CK': 1.0058, 'GA': -0.19, 'YC': 4.7557,
+                   'CM': 2.0638, 'CO': -0.812, 'CQ': -0.79, 'CS': 4.9854, 'CU': -0.39, 'CW': 0.4763, 'XC': 1.3208, 'GQ': 2.9062, 'DK': 0, 'AG': 0.3556, 'DM': 0.3556,
+                   'DQ': 1.07, 'GY': 0.6962, 'AJ': 0.2899, 'HC': 0.2899, 'HG': 1.9501, 'DW': 1.7311, 'HI': 1.6085, 'EI': 1.7013, 'EK': 1.875, 'EO': 0.88, 'EQ': 1.2077,
+                   'ES': -1.03092783505154, 'EU': 0.59642147117295, 'EY': 4.3716, 'FA': -2.105, 'HS': 3.55029585798817, 'HW': 1.42857142857142, 'FG': 2.13333333333334,
+                   'FI': -0.544959128065396}
     pixelSpacingDict = np.load(spacingDictDir).item()
     thicknessDict = np.load(thicknessDictDir).item()
     patientListDir = sorted(os.listdir(pointCloudParentDir))
-    patientListDir = [dir for dir in patientListDir if dir[0:2] in renalArteryDict.keys() and 'zip' not in dir]
-    #patientListDir = [dir for dir in patientListDir if dir[0:2] in ['AE']]
-    print('Weve got ' + str(len(renalArteryDict.keys())) + ' patients')
-    for segmentedPatientDir in patientListDir:
+    patientListDir = [dir for dir in patientListDir if dir[0:2] in TPThreeDict.keys() and 'zip' not in dir]
+    alreadyExtracted = [dir[0:2] for dir in os.listdir('C:/Users/Luke/Documents/sharedFolder/4YP/dicts/')]
+    patientListDir = [dir for dir in patientListDir if dir[0:2] not in alreadyExtracted]
+    for i, segmentedPatientDir in enumerate(patientListDir):
         patientID = segmentedPatientDir[0:2]
-        print('Patient ' + patientID)
+        print()
+        print('-------------------------------------------------------------')
+        print('Patient ' + patientID + ', ' + str(i+1) + '/' + str(len(patientListDir)))
         print('Renal artery at ' + str(renalArteryDict[patientID]))
         numpyPointCloudFiles = {'innerPointCloud':pointCloudParentDir + segmentedPatientDir + '/' + patientID + 'ThickInnerPointCloud.npy',
                                 'outerPointCloud': pointCloudParentDir + segmentedPatientDir + '/' + patientID + 'ThickOuterPointCloud.npy'}
@@ -255,7 +264,7 @@ def main():
         myOuterPointCloud = np.load(numpyPointCloudFiles['outerPointCloud'])
         myOuterPointCloud = np.where(myOuterPointCloud > 0, 255, 0)
 
-        patientFeatureDict = extractFeaturesFromPointClouds(myInnerPointCloud, myOuterPointCloud, renalArteryDict[patientID], thicknessDict[patientID], pixelSpacingDict[patientID])
+        patientFeatureDict = extractFeaturesFromPointClouds(patientID, myInnerPointCloud, myOuterPointCloud, renalArteryDict[patientID], thicknessDict[patientID], pixelSpacingDict[patientID])
         np.save(dictPath + patientID + 'featureDict' + str(datetime.datetime.today()).split('.')[0].replace(':', '-') + '.npy', patientFeatureDict)
 
 if __name__ == "__main__":
