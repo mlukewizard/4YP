@@ -28,6 +28,8 @@ def extractFeaturesFromPointClouds(patientID, ThickInnerPointCloud, ThickOuterPo
     innerPerimeter = []
     innerCentreLine = []
     outerCentreLine = []
+    innerDiameter = []
+    outerDiameter = []
 
     print('Analysing features...')
     for i in range(ThickInnerPointCloud.shape[0]):
@@ -41,20 +43,26 @@ def extractFeaturesFromPointClouds(patientID, ThickInnerPointCloud, ThickOuterPo
             innerPerimeter.append(calcPerimeter(ThickInnerPointCloud[i, :, :]))
             innerArea.append(2 * np.sqrt(np.where(np.isin(ThickInnerPointCloud[i, :, :], 255))[0].size / math.pi))
             innerCentreLine.append(ndimage.measurements.center_of_mass(ThickInnerPointCloud[i, :, :]))
+            innerDiameter.append(getsSliceDiameter(ThickInnerPointCloud[i, :, :]))
 
             #Adds to outer series
             outerPerimeter.append(calcPerimeter(ThickOuterPointCloud[i, :, :]))
             outerArea.append(2 * np.sqrt(np.where(np.isin(ThickOuterPointCloud[i, :, :], 255))[0].size / math.pi))
             outerCentreLine.append(ndimage.measurements.center_of_mass(ThickOuterPointCloud[i, :, :]))
+            outerDiameter.append(getsSliceDiameter(ThickOuterPointCloud[i, :, :]))
+
+            getsSliceDiameter(ThickOuterPointCloud[i, :, :])
 
         else:
             wallVolume.append(float('nan'))
             # Adds NaN to inner series
             innerPerimeter.append(float('nan'))
+            innerDiameter.append(float('nan'))
             innerArea.append(float('nan'))
             innerCentreLine.append((float('nan'), float('nan')))
             # Adds NaN to outer series
             outerPerimeter.append(float('nan'))
+            outerDiameter.append(float('nan'))
             outerArea.append(float('nan'))
             outerCentreLine.append((float('nan'), float('nan')))
 
@@ -70,6 +78,8 @@ def extractFeaturesFromPointClouds(patientID, ThickInnerPointCloud, ThickOuterPo
     innerPerimeter = np.array(innerPerimeter)
     innerCentreLine = np.array(innerCentreLine)
     outerCentreLine = np.array(outerCentreLine)
+    innerDiameter = np.array(innerDiameter)
+    outerDiameter = np.array(outerDiameter)
 
     # Automatically detects the start and end of the AAA
     AAABounds = findAAABounds(wallVolume, outerArea, renalArteryLocation)
@@ -80,12 +90,16 @@ def extractFeaturesFromPointClouds(patientID, ThickInnerPointCloud, ThickOuterPo
     featureDict['hNeck'] = (AAABounds['AAAStart'] - renalArteryLocation) * sliceThickness
     featureDict['lSac'] = calcSegmentLength(innerCentreLine[AAABounds['AAAStart']: AAABounds['AAAEnd'], :]) * sliceThickness
     featureDict['lNeck'] = calcSegmentLength(innerCentreLine[renalArteryLocation: AAABounds['AAAStart'], :]) * sliceThickness
-    featureDict['dOuterAreaProximal'] = outerArea[renalArteryLocation] * pixelSpacing[0]
-    featureDict['dOuterAreaDistal'] = outerArea[AAABounds['AAAStart']] * pixelSpacing[0]
-    featureDict['dInnerAreaProximal'] = innerArea[renalArteryLocation] * pixelSpacing[0]
-    featureDict['dInnerAreaDistal'] = innerArea[AAABounds['AAAStart']] * pixelSpacing[0]
-    featureDict['maxOuterArea'] = np.nanmax(outerArea) * pixelSpacing[0] * pixelSpacing[1]
-    featureDict['maxInnerArea'] = np.nanmax(innerArea) * pixelSpacing[0] * pixelSpacing[1]
+    featureDict['outerAreaProximal'] = outerArea[renalArteryLocation] * pixelSpacing[0]
+    featureDict['outerAreaDistal'] = outerArea[AAABounds['AAAStart']] * pixelSpacing[0]
+    featureDict['innerAreaProximal'] = innerArea[renalArteryLocation] * pixelSpacing[0]
+    featureDict['innerAreaDistal'] = innerArea[AAABounds['AAAStart']] * pixelSpacing[0]
+    featureDict['outerArea'] = outerArea * pixelSpacing[0] * pixelSpacing[1]
+    featureDict['innerArea'] = innerArea * pixelSpacing[0] * pixelSpacing[1]
+    featureDict['innerDiameter'] = innerDiameter * pixelSpacing[0]
+    featureDict['outerDiameter'] = outerDiameter * pixelSpacing[0]
+    featureDict['innerPerimeter'] = innerPerimeter * pixelSpacing[0]
+    featureDict['outerPerimeter'] = outerPerimeter * pixelSpacing[0]
     maxDiaLocation = innerArea[0:renalArteryLocation].size + np.nanargmax(innerArea[renalArteryLocation:])
     print('maxDiaLocation at ' + str(maxDiaLocation))
     featureDict['bulgeHeight'] = (maxDiaLocation - renalArteryLocation) * sliceThickness
@@ -107,24 +121,46 @@ def extractFeaturesFromPointClouds(patientID, ThickInnerPointCloud, ThickOuterPo
     '''
     # Plots of the results
     plt.figure()
-    plt.subplot(1, 3, 1)
+    plt.subplot(1, 2, 1)
     plt.gca().set_title('innerArea')
     plt.plot(innerArea)
-    plt.subplot(1, 3, 2)
-    plt.gca().set_title('outerArea')
-    plt.plot(outerArea)
-    plt.subplot(1, 3, 3)
-    plt.gca().set_title('wallVolume')
-    plt.plot(wallVolume)
+    plt.subplot(1, 2, 2)
+    plt.gca().set_title('innerDiameter')
+    plt.plot(innerDiameter)
     plt.show()
 
+    
     plt.figure()
     ax = plt.subplot(projection='3d')
     ax.scatter(sliceThickness*innerCentreLine[:, 0], innerCentreLine[:, 1], innerCentreLine[:, 2], zdir='z', c='red', marker='.')
     plt.show()
     '''
 
+
     return featureDict
+
+def getsSliceDiameter(inputArray):
+    newArray = copy.deepcopy(inputArray)
+    for i in range(4):
+        newArray[np.unravel_index(np.argmax(newArray), newArray.shape)] = 120
+        newArray = np.rot90(newArray)
+    points = np.array(np.where(newArray == 120))
+    maxDistances = []
+    for i in range(points.shape[1]):
+        for j in range(points.shape[1]):
+            maxDistances.append(np.sqrt(np.square(points[0, i] - points[0, j]) + np.square(points[1, i] - points[1, j])))
+    return np.max(maxDistances)
+
+def getBoundingBox(inputArray):
+    bBox = {}
+    bBox['xMin'] = np.min(inputArray[0])
+    bBox['xMax'] = np.max(inputArray[0])
+    bBox['yMin'] = np.min(inputArray[1])
+    bBox['yMax'] = np.max(inputArray[1])
+    if len(inputArray.shape) > 2:
+        bBox['zMin'] = np.min(inputArray[2])
+        bBox['zMax'] = np.max(inputArray[2])
+    return bBox
 
 def lukesShell(image):
     shelledImage = image[0:-2, 0:-2] + image[2:, 2:] + image[0:-2, 2:] + image[2:, 0:-2]
