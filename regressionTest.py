@@ -6,11 +6,12 @@ from random import *
 import copy
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.gaussian_process.kernels import *
+from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C
 from sklearn.svm import SVR
 from sklearn.preprocessing import StandardScaler
 from sklearn.neural_network import MLPRegressor
 import random
+from numpy.linalg import norm
 import matplotlib.pyplot as plt
 from scipy.stats import pearsonr, spearmanr
 
@@ -24,8 +25,8 @@ def randomForestRegression(dataList, transformer, trueYDataFrame):
     testRegressor(regr, dataList, transformer, trueYDataFrame)
 
 def gaussianRegression(dataList, transformer, trueYDataFrame):
-    myKernel = RBF(length_scale=1.0, length_scale_bounds=(0.1, 10.0))
-    regr = GaussianProcessRegressor(kernel=None, alpha=1e-10, optimizer='fmin_l_bfgs_b', n_restarts_optimizer=100, normalize_y=False, copy_X_train=True, random_state=None)
+    myKernel = C(1.0, constant_value_bounds="fixed") * RBF(1.0, length_scale_bounds="fixed")
+    regr = GaussianProcessRegressor(kernel=myKernel, alpha=1e-10, optimizer='fmin_l_bfgs_b', n_restarts_optimizer=100, normalize_y=False, copy_X_train=True, random_state=None)
     testRegressor(regr, dataList, transformer, trueYDataFrame)
 
 
@@ -57,22 +58,49 @@ def testRegressor(myRegressor, dataList, transformer, trueYDataFrame):
     error = 0
     for data in dataList:
         myRegressor.fit(data['XTrain'], data['YTrain'])
-        prediction = myRegressor.predict(np.expand_dims(data['XTest'], axis=0))
+        prediction, bonus= myRegressor.predict(np.expand_dims(data['XTest'], axis=0), return_std=True)
         print('Predicted: ' + str(prediction) + ' Label: ' + str(data['YTest']))
-        points.append([data['YTest'], prediction])
-        error += abs(data['YTest'] - prediction)
+        if bonus < 1:
+            points.append([data['YTest'], prediction])
+            error += abs(data['YTest'] - prediction)
     print('Total error is ' + str(error))
     points = np.array(points)
-    print('Pearson is ' + str(pearsonr(trueYDataFrame, points[:, 1])))
-    print('Spearman is ' + str(spearmanr(trueYDataFrame, points[:, 1])))
     points[:, 1] = transformer.inverse_transform(points[:, 1])
-    plt.scatter(trueYDataFrame, points[:, 1])
+    points[:, 0] = transformer.inverse_transform(points[:, 0])
+    TPThreeDict = {'AD': -1.944, 'AA': -2.47, 'CC': 0.84, 'FS': -1.944, 'CE': 1.1173, 'FW': 0.96, 'CG': 2.8759, 'CI': 2.0778, 'CK': 1.0058, 'GA': -0.19, 'YC': 4.7557,
+                   'CM': 2.0638, 'CO': -0.812, 'CQ': -0.79, 'CS': 4.9854, 'CU': -0.39, 'CW': 0.4763, 'XC': 1.3208, 'GQ': 2.9062, 'DK': 0, 'AG': 0.3556, 'DM': 0.3556,
+                   'DQ': 1.07, 'GY': 0.6962, 'AJ': 0.2899, 'HC': 0.2899, 'HG': 1.9501, 'DW': 1.7311, 'HI': 1.6085, 'EI': 1.7013, 'EK': 1.875, 'EO': 0.88, 'EQ': 1.2077,
+                   'ES': -1.03092783505154, 'EU': 0.59642147117295, 'EY': 4.3716, 'FA': -2.105, 'HS': 3.55029585798817, 'HW': 1.42857142857142, 'FG': 2.13333333333334,
+                   'FI': -0.544959128065396}
+
+    #for i in range(points.shape[0]-1, -1, -1):
+    #    if points[i, 0] < -1 and points[i, 1] > 3:
+    #        print(list(TPThreeDict.keys())[i])
+    #        points = np.delete(points, i, 0)
+
+    for i in range(points.shape[0]-1, -1, -1):
+        if points[i, 0] < -3 or points[i, 0] > 5 or points[i, 1] < -3 or points[i, 1] > 5:
+            print(list(TPThreeDict.keys())[i])
+            points = np.delete(points, i, 0)
+
+    print('Pearson is ' + str(pearsonr(points[:, 0], points[:, 1])))
+    print('Spearman is ' + str(spearmanr(points[:, 0], points[:, 1])))
+
+    p1 = np.array([-3,-3])
+    p2 = np.array([5, 5])
+    totalError = 0
+    for i in range(points.shape[0] - 1, -1, -1):
+        p3 = points[i, :]
+        totalError = totalError + norm(np.cross(p2 - p1, p1 - p3)) / norm(p2 - p1)
+    averageError = totalError / points.shape[0] - 1
+    print('Average error is ' + str(averageError))
+
+    plt.scatter(points[:, 0], points[:, 1])
     plt.xlabel('True FMD Value')
     plt.ylabel('Algorithmically predicted FMD Value')
     axes = plt.gca()
     axes.set_xlim([-3, 6])
     axes.set_ylim([-3, 6])
-    #plt.plot(np.unique(trueYDataFrame), np.poly1d(np.polyfit(trueYDataFrame, points[:, 1], 1))(np.unique(trueYDataFrame)))
     plt.show()
 
 
@@ -110,13 +138,15 @@ def turnFeatureDictsToDataFrame():
         if key in dictOfDics.keys():
             featureDict = dictOfDics[key]
             YRow = FMDVal
-            XRow =[np.nanmax(featureDict['innerDiameter']),  #0
-                   np.nanmax(featureDict['outerDiameter']),  #1
+            XRow =[np.nanmax(featureDict['innerDiameter'][150:]),  #0
+                   np.nanmax(featureDict['outerDiameter'][150:]),  #1
+                   np.nanmax(featureDict['innerDiameter']),  # 0
+                   np.nanmax(featureDict['outerDiameter']),
                    np.nanmax(featureDict['innerPerimeter']),  #2
-                   np.nanmax(featureDict['outerPerimeter']), #3
+                   np.nanmax(featureDict['outerPerimeter']),  #3
 
-                   np.nanmax(featureDict['innerArea']), #4
-                   np.nanmax(featureDict['outerArea']), #5
+                   np.nanmax(featureDict['innerArea']),  #4
+                   np.nanmax(featureDict['outerArea']),  #5
                    featureDict['innerAreaDistal'],  #6
                    featureDict['innerAreaProximal'],  #7
                    featureDict['outerAreaDistal'],  #8
@@ -133,7 +163,7 @@ def turnFeatureDictsToDataFrame():
                    featureDict['hSac'],  #17
                    featureDict['lNeck'],  #18
                    featureDict['lSac'],  #19
-                   featureDict['bulgeHeight'], #20
+                   featureDict['bulgeHeight'],  #20
 
                    np.nanmean(featureDict['AAAInnerTortuosityLargeScale']),  #21
                    np.nanmean(featureDict['AAAInnerTortuositySmallScale']),  #22
@@ -149,6 +179,11 @@ def turnFeatureDictsToDataFrame():
         else:
             print('Couldnt find patient ' + key + ' you should find where this has gone')
     XDataFrame = np.array(XDataFrame)
+    featureVars = []
+    averageFeatureVals = []
+    for featureNum in range(XDataFrame.shape[1]):
+        averageFeatureVals.append(np.mean(XDataFrame[:, featureNum]))
+        featureVars.append(np.std(XDataFrame[:, featureNum]))
     trueYDataFrame = np.array(trueYDataFrame)
 
     listOfData, YTransformer = normaliseDataFrames(XDataFrame, trueYDataFrame)
