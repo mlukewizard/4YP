@@ -14,74 +14,62 @@ import random
 from numpy.linalg import norm
 import matplotlib.pyplot as plt
 from scipy.stats import pearsonr, spearmanr
+from sklearn.decomposition import PCA
 
-def randomForestRegression(dataList, transformer, trueYDataFrame):
-    regr =RandomForestRegressor(bootstrap=True, criterion='mse', max_depth=None,
+regr =RandomForestRegressor(bootstrap=True, criterion='mse', max_depth=None,
            max_features='auto', max_leaf_nodes=None,
            min_impurity_decrease=0.0, min_impurity_split=None,
            min_samples_leaf=1, min_samples_split=2,
            min_weight_fraction_leaf=0.0, n_estimators=1000, n_jobs=1,
            oob_score=False, random_state=0, verbose=0, warm_start=False)
-    testRegressor(regr, dataList, transformer, trueYDataFrame)
 
-def gaussianRegression(dataList, transformer, trueYDataFrame):
-    myKernel = C(1.0, constant_value_bounds="fixed") * RBF(1.0, length_scale_bounds="fixed")
-    regr = GaussianProcessRegressor(kernel=myKernel, alpha=1e-10, optimizer='fmin_l_bfgs_b', n_restarts_optimizer=100, normalize_y=False, copy_X_train=True, random_state=None)
-    testRegressor(regr, dataList, transformer, trueYDataFrame)
+regr = SVR(kernel='rbf', degree=10, gamma='auto', coef0=0.0, tol=0.0000001, C=100000, epsilon=0.0000001, shrinking=False, cache_size=200, verbose=False, max_iter=-1)
 
-
-def svmRegression(dataList, transformer, trueYDataFrame):
-    regr = SVR(kernel='rbf', degree=10, gamma='auto', coef0=0.0, tol=0.0000001, C=100000, epsilon=0.0000001, shrinking=False, cache_size=200, verbose=False, max_iter=-1)
-    testRegressor(regr, dataList, transformer, trueYDataFrame)
-
-
-def mlpRegressor(dataList, transformer, trueYDataFrame):
-    regr = MLPRegressor(hidden_layer_sizes=(100, ), activation='relu', solver ='adam', alpha = 0.0001, batch_size ='auto', learning_rate ='constant',
+regr = MLPRegressor(hidden_layer_sizes=(100, ), activation='relu', solver ='adam', alpha = 0.0001, batch_size ='auto', learning_rate ='constant',
     learning_rate_init = 0.001, power_t = 0.5, max_iter = 200, shuffle = True, random_state = None, tol = 0.0001, verbose = False, warm_start = False,
     momentum = 0.9, nesterovs_momentum = True, early_stopping = False, validation_fraction = 0.1, beta_1 = 0.9, beta_2 = 0.999, epsilon = 1e-08)
-    testRegressor(regr, dataList, transformer, trueYDataFrame)
 
-def createData():
-    featureNum = 20
-    randomFunction = np.random.rand(featureNum)-0.4
-    XDataFrame = np.random.rand(40, featureNum)
-    trueYDataFrame = np.zeros(XDataFrame.shape[0])
-    for i in range(XDataFrame.shape[0]):
-        trueYDataFrame[i] = np.dot(XDataFrame[i, :], randomFunction) #+ 2*(random.random()-0.9)
+def gaussianRegression(XTrain, YTrain, XTest, YTest):
+    myKernel = C(1.0, constant_value_bounds="fixed") * RBF(1.0, length_scale_bounds="fixed")
+    regr = GaussianProcessRegressor(kernel=myKernel, alpha=1e-10, optimizer='fmin_l_bfgs_b', n_restarts_optimizer=100, normalize_y=False, copy_X_train=True, random_state=None)
+    return testRegressor(regr, XTrain, YTrain, XTest, YTest)
 
-    listOfData, YTransformer = normaliseDataFrames(XDataFrame, trueYDataFrame)
-    return listOfData, YTransformer, trueYDataFrame
+def nDGaussianRegression(XFrame, YFrame):
+    myKernel = C(1.0, constant_value_bounds="fixed") * RBF(1.0, length_scale_bounds="fixed")
+    regr = GaussianProcessRegressor(kernel=myKernel, alpha=1e-10, optimizer='fmin_l_bfgs_b', n_restarts_optimizer=100, normalize_y=False, copy_X_train=True, random_state=None)
+    nDTestRegressor(regr, XFrame, YFrame)
 
-def testRegressor(myRegressor, dataList, transformer, trueYDataFrame):
-    print(myRegressor)
+def testRegressor(regr, inputXTrain, inputYTrain, inputXTest, inputYTest):
+    XTrain = copy.deepcopy(inputXTrain)
+    YTrain = copy.deepcopy(inputYTrain)
+    XTest = copy.deepcopy(inputXTest)
+    YTest = copy.deepcopy(inputYTest)
+    XTrainTransformed, YTrainTransformed, xMultipliers, xMeans, YTransformer = normaliseDataFrames(XTrain, YTrain)
+    regr = regr.fit(XTrainTransformed, YTrainTransformed)
+    for i in range(XTest.shape[0]):
+        XTest[i] = (XTest[i]/xMultipliers[i]) - xMeans[i]
+
+    prediction, bonus = regr.predict(np.expand_dims(XTest, axis=0), return_std=True)
+    prediction = YTransformer.inverse_transform(prediction)
+    #print('Predicted: ' + str(prediction) + ' Label: ' + str(YTest))
+    return prediction, bonus
+
+def nDTestRegressor(regr, XFrame, YFrame):
+    print(regr)
     points = []
     error = 0
-    for data in dataList:
-        myRegressor.fit(data['XTrain'], data['YTrain'])
-        prediction, bonus= myRegressor.predict(np.expand_dims(data['XTest'], axis=0), return_std=True)
-        print('Predicted: ' + str(prediction) + ' Label: ' + str(data['YTest']))
+
+    for i in range(YFrame.shape[0]):
+        XTrain = np.delete(copy.deepcopy(XFrame), i, axis=0)
+        YTrain = np.delete(copy.deepcopy(YFrame), i)
+        XTest = copy.deepcopy(XFrame)[i, :]
+        YTest = copy.deepcopy(YFrame)[i]
+        prediction, bonus = testRegressor(regr, XTrain, YTrain, XTest, YTest)
         if bonus < 1:
-            points.append([data['YTest'], prediction])
-            error += abs(data['YTest'] - prediction)
-    print('Total error is ' + str(error))
+            points.append([YTest, prediction])
+            error += abs(YTest - prediction)
+    print('Average absolute error is ' + str(error/YFrame.shape[0]))
     points = np.array(points)
-    points[:, 1] = transformer.inverse_transform(points[:, 1])
-    points[:, 0] = transformer.inverse_transform(points[:, 0])
-    TPThreeDict = {'AD': -1.944, 'AA': -2.47, 'CC': 0.84, 'FS': -1.944, 'CE': 1.1173, 'FW': 0.96, 'CG': 2.8759, 'CI': 2.0778, 'CK': 1.0058, 'GA': -0.19, 'YC': 4.7557,
-                   'CM': 2.0638, 'CO': -0.812, 'CQ': -0.79, 'CS': 4.9854, 'CU': -0.39, 'CW': 0.4763, 'XC': 1.3208, 'GQ': 2.9062, 'DK': 0, 'AG': 0.3556, 'DM': 0.3556,
-                   'DQ': 1.07, 'GY': 0.6962, 'AJ': 0.2899, 'HC': 0.2899, 'HG': 1.9501, 'DW': 1.7311, 'HI': 1.6085, 'EI': 1.7013, 'EK': 1.875, 'EO': 0.88, 'EQ': 1.2077,
-                   'ES': -1.03092783505154, 'EU': 0.59642147117295, 'EY': 4.3716, 'FA': -2.105, 'HS': 3.55029585798817, 'HW': 1.42857142857142, 'FG': 2.13333333333334,
-                   'FI': -0.544959128065396}
-
-    #for i in range(points.shape[0]-1, -1, -1):
-    #    if points[i, 0] < -1 and points[i, 1] > 3:
-    #        print(list(TPThreeDict.keys())[i])
-    #        points = np.delete(points, i, 0)
-
-    for i in range(points.shape[0]-1, -1, -1):
-        if points[i, 0] < -3 or points[i, 0] > 5 or points[i, 1] < -3 or points[i, 1] > 5:
-            print(list(TPThreeDict.keys())[i])
-            points = np.delete(points, i, 0)
 
     print('Pearson is ' + str(pearsonr(points[:, 0], points[:, 1])))
     print('Spearman is ' + str(spearmanr(points[:, 0], points[:, 1])))
@@ -103,24 +91,44 @@ def testRegressor(myRegressor, dataList, transformer, trueYDataFrame):
     axes.set_ylim([-3, 6])
     plt.show()
 
+def gaussianWeightDiscovery(XDataFrame, YDataFrame, averageFeatureVals, averageYVal, featureVars, yVar):
+    originalPrediction, bonus = gaussianRegression(XDataFrame, YDataFrame, averageFeatureVals, averageYVal)
+    relativeImportances = []
+    for featureNum in range(XDataFrame.shape[1]):
+        perturbedFeatureVals = copy.deepcopy(averageFeatureVals)
+        perturbedFeatureVals[featureNum] = perturbedFeatureVals[featureNum] - featureVars[featureNum]/10
+        perturbedPrediction, bonus = gaussianRegression(XDataFrame, YDataFrame, perturbedFeatureVals, averageYVal)
+        changeOverVariance = np.abs(perturbedPrediction - originalPrediction)/yVar
+        print('Change over variance is ' + str(changeOverVariance))
+        relativeImportances.append(changeOverVariance)
+
+
+
+def createData():
+    featureNum = 20
+    randomFunction = np.random.rand(featureNum)-0.4
+    XDataFrame = np.random.rand(40, featureNum)
+    trueYDataFrame = np.zeros(XDataFrame.shape[0])
+    for i in range(XDataFrame.shape[0]):
+        trueYDataFrame[i] = np.dot(XDataFrame[i, :], randomFunction) #+ 2*(random.random()-0.9)
+
+    return trueYDataFrame
 
 def normaliseDataFrames(XDataFrame, trueYDataFrame):
     YDataFrame = copy.deepcopy(trueYDataFrame)
-    # Scalers the data for each feature
-    XTransformer = StandardScaler()
+    # Scales the data for each feature
     YTransformer = StandardScaler()
-    #XDataFrame = XTransformer.fit_transform(XDataFrame)
+    transformedY = YTransformer.fit_transform(YDataFrame.reshape(-1, 1))[:, 0]
+
+    xMultipliers = []
+    xMeans = []
     for featureNum in range(int(XDataFrame.shape[1])):
+        xMultipliers.append(max(XDataFrame[:, featureNum]))
         XDataFrame[:, featureNum] = XDataFrame[:, featureNum]/max(XDataFrame[:, featureNum])
+        xMeans.append(np.mean(XDataFrame[:, featureNum]))
         XDataFrame[:, featureNum] = XDataFrame[:, featureNum] - np.mean(XDataFrame[:, featureNum])
-    YDataFrame = YTransformer.fit_transform(YDataFrame.reshape(-1, 1))[:, 0]
 
-    # Constructs the training arrays for the n dimensional test
-    listOfData = [{'XTest': XDataFrame[i, :], 'YTest': YDataFrame[i], 'XTrain': np.concatenate([XDataFrame[0:i, :], XDataFrame[i + 1:, :]]),
-                   'YTrain': np.concatenate([YDataFrame[0:i], YDataFrame[i + 1:]])} for i in range(XDataFrame.shape[0] - 1)]
-    listOfData.append({'XTest': XDataFrame[-1, :], 'YTest': YDataFrame[-1], 'XTrain': XDataFrame[0:-1, :], 'YTrain': YDataFrame[0:-1]})
-    return listOfData, YTransformer
-
+    return XDataFrame, transformedY, xMultipliers, xMeans, YTransformer
 
 def turnFeatureDictsToDataFrame():
     dictPath = 'C:/Users/Luke/Documents/sharedFolder/4YP/dicts/'
@@ -138,9 +146,9 @@ def turnFeatureDictsToDataFrame():
         if key in dictOfDics.keys():
             featureDict = dictOfDics[key]
             YRow = FMDVal
-            XRow =[np.nanmax(featureDict['innerDiameter'][150:]),  #0
-                   np.nanmax(featureDict['outerDiameter'][150:]),  #1
-                   np.nanmax(featureDict['innerDiameter']),  # 0
+            XRow =[#np.nanmax(featureDict['innerDiameter'][150:]),  #0
+                   #np.nanmax(featureDict['outerDiameter'][150:]),  #1
+                   np.nanmax(featureDict['innerDiameter']),
                    np.nanmax(featureDict['outerDiameter']),
                    np.nanmax(featureDict['innerPerimeter']),  #2
                    np.nanmax(featureDict['outerPerimeter']),  #3
@@ -179,54 +187,39 @@ def turnFeatureDictsToDataFrame():
         else:
             print('Couldnt find patient ' + key + ' you should find where this has gone')
     XDataFrame = np.array(XDataFrame)
+    trueYDataFrame = np.array(trueYDataFrame)
+
+
+    #pca = PCA(n_components=10)
+    #XDataFrame = pca.fit_transform(XDataFrame)
+
     featureVars = []
     averageFeatureVals = []
     for featureNum in range(XDataFrame.shape[1]):
         averageFeatureVals.append(np.mean(XDataFrame[:, featureNum]))
         featureVars.append(np.std(XDataFrame[:, featureNum]))
-    trueYDataFrame = np.array(trueYDataFrame)
+    averageFMDVal = np.average(trueYDataFrame)
+    averageFeatureVals = np.array(averageFeatureVals)
+    yVar = np.std(trueYDataFrame)
 
-    listOfData, YTransformer = normaliseDataFrames(XDataFrame, trueYDataFrame)
-    return listOfData, YTransformer, trueYDataFrame
+    #plt.scatter(XDataFrame[:, 5], trueYDataFrame)
+    #plt.show()
 
-def randomResults():
-    dictPath = 'C:/Users/Luke/Documents/sharedFolder/4YP/dicts/'
-    TPThreeDict = {'AD': -1.944, 'AA': -2.47, 'CC': 0.84, 'FS': -1.944, 'CE': 1.1173, 'FW': 0.96, 'CG': 2.8759, 'CI': 2.0778, 'CK': 1.0058, 'GA': -0.19, 'YC': 4.7557,
-                   'CM': 2.0638, 'CO': -0.812, 'CQ': -0.79, 'CS': 4.9854, 'CU': -0.39, 'CW': 0.4763, 'XC': 1.3208, 'GQ': 2.9062, 'DK': 0, 'AG': 0.3556, 'DM': 0.3556,
-                   'DQ': 1.07, 'GY': 0.6962, 'AJ': 0.2899, 'HC': 0.2899, 'HG': 1.9501, 'DW': 1.7311, 'HI': 1.6085, 'EI': 1.7013, 'EK': 1.875, 'EO': 0.88, 'EQ': 1.2077,
-                   'ES': -1.03092783505154, 'EU': 0.59642147117295, 'EY': 4.3716, 'FA': -2.105, 'HS': 3.55029585798817, 'HW': 1.42857142857142, 'FG': 2.13333333333334,
-                   'FI': -0.544959128065396}
-    dictOfDics = {}
-    for dict in sorted(os.listdir(dictPath)):
-        dictOfDics[dict[0:2]] = np.load(dictPath + dict).item()
-    XDataFrame = []
-    trueYDataFrame = []
-    for key, FMDVal in TPThreeDict.items():
-        if key in dictOfDics.keys():
-            featureDict = dictOfDics[key]
-            YRow = FMDVal
-        trueYDataFrame.append(YRow)
-    trueYDataFrame = np.array(trueYDataFrame)
-    randomYDataFrame = np.random.rand(trueYDataFrame.shape[0])
-    plt.scatter(trueYDataFrame, randomYDataFrame)
-    plt.plot(np.unique(trueYDataFrame), np.poly1d(np.polyfit(trueYDataFrame, randomYDataFrame, 1))(np.unique(trueYDataFrame)))
-    plt.show()
+    return trueYDataFrame, XDataFrame, averageFMDVal, averageFeatureVals, featureVars, yVar
+
+def correlateFeatures(YDataFrame, XDataFrame):
+    for featureNum in range(XDataFrame.shape[1]):
+        print(np.corrcoef(XDataFrame[:, featureNum], YDataFrame)[0,1])
 
 def main():
-    data, transformer, trueYDataFrame = turnFeatureDictsToDataFrame()
-    #data, transformer, trueYDataFrame = createData()
+    YDataFrame, XDataFrame, averageYVal, averageFeatureVals, featureVars, yVar = turnFeatureDictsToDataFrame()
+    #YDataFrame, XDataFrame, averageYVal, averageFeatureVals = createData()
 
-    #randomForestRegression(data, transformer, trueYDataFrame)
-    print()
-    print()
-    gaussianRegression(data, transformer, trueYDataFrame)
-    print()
-    print()
-    #svmRegression(data, transformer, trueYDataFrame)
-    print()
-    print()
-    #mlpRegressor(data, transformer, trueYDataFrame)
+    #gaussianRegression(XDataFrame, YDataFrame, averageFeatureVals, averageYVal)
+    #gaussianWeightDiscovery(XDataFrame, YDataFrame, averageFeatureVals, averageYVal, featureVars, yVar)
+    nDGaussianRegression(XDataFrame, YDataFrame)
+    #correlateFeatures(YDataFrame, XDataFrame)
+
 
 if __name__ == '__main__':
     main()
-    #randomResults()

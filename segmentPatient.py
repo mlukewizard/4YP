@@ -154,7 +154,84 @@ def cleanPointCloud(innerPC, outerPC, patientID, predictionFolder):
     print('Writing Outer Point Cloud')
     np.save(predictionFolder + patientID + 'ThickOuterPointCloud' + '.npy', outerPC)
 
-def doPatientSegmentation(specificEntry, uncompletedFileList, indexStartLocation, model, boxSize, tmpFolder, tmpDicomDir, tmpPredictionDir, bankDicomDir, bankPredictionDir):
+def doPatientSegmentationWithoutStorage(specificEntry, patientsToSegmentList, indexStartLocation, model, boxSize, tmpFolder, bankDicomDir, bankPredictionDir):
+    patientID = specificEntry[0:2]
+
+    predictionFolder = bankPredictionDir + patientID + '_processed/'
+    outerPredictionFolder = predictionFolder + 'outerPredictions/'
+    innerPredictionFolder = predictionFolder + 'innerPredictions/'
+    innerAlgoFolder = predictionFolder + 'algoInners/'
+    outerAlgoFolder = predictionFolder + 'algoOuters/'
+    [os.mkdir(myFolder) for myFolder in [tmpFolder, predictionFolder, innerPredictionFolder, outerPredictionFolder] if not os.path.exists(myFolder)]
+
+    dicomList = sorted(os.listdir(bankDicomDir + specificEntry))
+    print('You should check the following are in alphabetical/numerical order')
+    print(dicomList[0])
+    print(dicomList[1])
+    print(dicomList[2])
+
+
+    if not all(os.path.exists(myFolder) for myFolder in [predictionFolder + patientID + '_innerBinaryArray' + '.npy',
+                                                         predictionFolder + patientID + '_outerBinaryArray' + '.npy']):
+        print('No previously made numpy arrays found')
+
+        [os.mkdir(myFolder) for myFolder in [innerAlgoFolder, outerAlgoFolder] if not os.path.exists(myFolder)]
+
+        # Initialises the pointCloud
+        innerPC = np.zeros([len(dicomList), 512, 512])
+        outerPC = np.zeros([len(dicomList), 512, 512])
+
+        centralCoordinate = [240, 256]
+
+        loopStartTime = time.time()
+
+        for loopCount, k in enumerate(range(indexStartLocation, len(dicomList))):
+
+            # Predicts the location of the aneurysm
+            secondsRemaining = (len(dicomList) - k) * (time.time() - loopStartTime) / (loopCount + 1)
+            printString = "Predicting slice " + str(k+1) + '/' + str(len(dicomList)) + " for patient " + patientID + ". Estimated time remaining: " + str(int(np.floor(secondsRemaining / 60))) + " minutes and " + str(int(((secondsRemaining / 60) - np.floor(secondsRemaining / 60)) * 60)) + " seconds"
+            print(printString)
+
+            # Constructing a suitable array to feed to the algorithm so it can segment the slice in question
+            modelInputArray = np.expand_dims(ConstructArraySlice(dicomList, bankDicomDir + specificEntry + '/', k, boxSize, tmpFolder, centralLocation=centralCoordinate), axis=0)
+
+            # Uses the algorithm to predict the location of the aneurysm
+            output = model.predict(modelInputArray) * 255
+
+            # Gets the location of the 256x256 box in the 512x512 image
+            upperRow = int(centralCoordinate[0] - round(boxSize / 2))
+            lowerRow = int(upperRow + boxSize)
+            leftColumn = int(centralCoordinate[1] - round(boxSize / 2))
+            rightColumn = int(leftColumn + boxSize)
+
+            resizedOuterImage = np.zeros([512, 512])
+            resizedOuterImage[upperRow:lowerRow, leftColumn:rightColumn] = output[0, 2, :, :, 1]
+            misc.toimage(resizedOuterImage, cmin=0.0, cmax=255).save((outerAlgoFolder + 'outerPredicted_' + dicomList[k]).split('.dcm')[0] + '.png')
+            resizedInnerImage = np.zeros([512, 512])
+            resizedInnerImage[upperRow:lowerRow, leftColumn:rightColumn] = output[0, 2, :, :, 0]
+            misc.toimage(resizedInnerImage, cmin=0.0, cmax=255).save((innerAlgoFolder + 'innerPredicted_' + dicomList[k]).split('.dcm')[0] + '.png')
+
+            outerPC[k, :, :] = resizedOuterImage
+            innerPC[k, :, :] = resizedInnerImage
+
+            # Updates the location of the centre of mass for the next iteration
+            newLocation = ndimage.measurements.center_of_mass(resizedInnerImage + resizedOuterImage)
+            centralCoordinate = [int(centralCoordinate[0] + (newLocation[0] - centralCoordinate[0]) / np.power(loopCount + 1, 0.2)), int(centralCoordinate[1] + (newLocation[1] - centralCoordinate[1]) / np.power(loopCount + 1, 0.2))]
+            centralCoordinate[1] = clamp(centralCoordinate[1], 192, 320)
+            centralCoordinate[0] = clamp(centralCoordinate[0], 192, 320)
+
+        print('Writing outer predictions to numpy array')
+        np.save(predictionFolder + patientID + '_outerBinaryArray' + '.npy', outerPC)
+        print('Writing inner predictions to numpy array')
+        np.save(predictionFolder + patientID + '_innerBinaryArray' + '.npy', innerPC)
+    else:
+        print('Using previously constructed numpy arrays')
+        innerPC = np.load(predictionFolder + patientID + '_innerBinaryArray' + '.npy')
+        outerPC = np.load(predictionFolder + patientID + '_outerBinaryArray' + '.npy')
+
+    cleanPointCloud(innerPC, outerPC, patientID, predictionFolder)
+
+def doPatientSegmentationWithStorage(specificEntry, uncompletedFileList, indexStartLocation, model, boxSize, tmpFolder, tmpDicomDir, tmpPredictionDir, bankDicomDir, bankPredictionDir):
     patientID = specificEntry[0:2]
 
     tryUpdateFileSystem(specificEntry, uncompletedFileList, tmpDicomDir, tmpPredictionDir, bankDicomDir, bankPredictionDir)
@@ -278,13 +355,23 @@ def main():
 
 
     runTimeNum = '2'
-    tmpStorageDir = 'C:/Users/Luke/Documents/sharedFolder/4YP/4YP_Pythoon/temporaryStorage' + runTimeNum +'/'
-    tmpFolder = 'C:/Users/Luke/Documents/sharedFolder/4YP/4YP_Pythoon/tmp' + runTimeNum + '/'
-    model_file = 'C:/Users/Luke/Documents/sharedFolder/4YP/Models/21stFeb/weights.43-0.01.h5'
-    tmpDicomDir = 'C:/Users/Luke/Documents/sharedFolder/4YP/4YP_Pythoon/temporaryStorage' + runTimeNum + '/dicomFolders/'
-    tmpPredictionDir = 'C:/Users/Luke/Documents/sharedFolder/4YP/4YP_Pythoon/temporaryStorage' + runTimeNum + '/predictionFolders/'
-    bankDicomDir = 'D:/allCases/'
-    bankPredictionDir = 'D:/processedCases/'
+
+    if get_mac() == 57277338463062:
+        tmpStorageDir = 'C:/Users/Luke/Documents/sharedFolder/4YP/4YP_Pythoon/temporaryStorage' + runTimeNum +'/'
+        tmpFolder = 'C:/Users/Luke/Documents/sharedFolder/4YP/4YP_Pythoon/tmp' + runTimeNum + '/'
+        model_file = 'C:/Users/Luke/Documents/sharedFolder/4YP/Models/21stFeb/weights.43-0.01.h5'
+        tmpDicomDir = 'C:/Users/Luke/Documents/sharedFolder/4YP/4YP_Pythoon/temporaryStorage' + runTimeNum + '/dicomFolders/'
+        tmpPredictionDir = 'C:/Users/Luke/Documents/sharedFolder/4YP/4YP_Pythoon/temporaryStorage' + runTimeNum + '/predictionFolders/'
+        bankDicomDir = 'D:/allCases/'
+        bankPredictionDir = 'D:/processedCases/'
+    else:
+        tmpStorageDir = 'C:/Users/Luke/Documents/sharedFolder/4YP/4YP_Pythoon/temporaryStorage' + runTimeNum + '/'
+        tmpFolder = 'C:/Users/Luke/Documents/sharedFolder/4YP/4YP_Pythoon/tmp' + runTimeNum + '/'
+        model_file = 'C:/Users/Luke/Documents/sharedFolder/4YP/Models/21stFeb/weights.43-0.01.h5'
+        tmpDicomDir = 'C:/Users/Luke/Documents/sharedFolder/4YP/4YP_Pythoon/temporaryStorage' + runTimeNum + '/dicomFolders/'
+        tmpPredictionDir = 'C:/Users/Luke/Documents/sharedFolder/4YP/4YP_Pythoon/temporaryStorage' + runTimeNum + '/predictionFolders/'
+        bankDicomDir = 'D:/allCases/'
+        bankPredictionDir = 'D:/processedCases/'
 
     [os.mkdir(myFolder) for myFolder in [tmpFolder, tmpStorageDir, tmpDicomDir, tmpPredictionDir] if not os.path.exists(myFolder)]
 
@@ -302,7 +389,8 @@ def main():
         print('Working on patient ' + str(patientNum+1) +'/'+str(len(patientsToSegmentList)))
         patientID = specificEntry[0:2]
         indexStartLocation = indexStartLocations[patientID] if patientID in indexStartLocations.keys() else 0
-        doPatientSegmentation(specificEntry, patientsToSegmentList, indexStartLocation, model, boxSize, tmpFolder, tmpDicomDir, tmpPredictionDir, bankDicomDir, bankPredictionDir)
+        doPatientSegmentationWithStorage(specificEntry, patientsToSegmentList, indexStartLocation, model, boxSize, tmpFolder, tmpDicomDir, tmpPredictionDir, bankDicomDir, bankPredictionDir)
+        doPatientSegmentationWithoutStorage(specificEntry, patientsToSegmentList, indexStartLocation, model, boxSize, tmpFolder, bankDicomDir, bankPredictionDir)
         gc.collect()
 
 if __name__ == '__main__':
