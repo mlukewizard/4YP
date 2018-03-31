@@ -16,6 +16,7 @@ from keras import losses
 import numpy as np
 import h5py
 import matplotlib
+import subprocess
 import matplotlib.pyplot as plt
 from scipy import ndimage
 import scipy.misc as misc
@@ -354,7 +355,7 @@ def main():
     boxSize = 256
 
 
-    runTimeNum = '2'
+    runTimeNum = '1'
 
     if get_mac() == 57277338463062:
         tmpStorageDir = 'C:/Users/Luke/Documents/sharedFolder/4YP/4YP_Pythoon/temporaryStorage' + runTimeNum +'/'
@@ -364,22 +365,21 @@ def main():
         tmpPredictionDir = 'C:/Users/Luke/Documents/sharedFolder/4YP/4YP_Pythoon/temporaryStorage' + runTimeNum + '/predictionFolders/'
         bankDicomDir = 'D:/allCases/'
         bankPredictionDir = 'D:/processedCases/'
+	[os.mkdir(myFolder) for myFolder in [tmpFolder, tmpStorageDir, tmpDicomDir, tmpPredictionDir] if not os.path.exists(myFolder)]
     else:
-        tmpStorageDir = 'C:/Users/Luke/Documents/sharedFolder/4YP/4YP_Pythoon/temporaryStorage' + runTimeNum + '/'
-        tmpFolder = 'C:/Users/Luke/Documents/sharedFolder/4YP/4YP_Pythoon/tmp' + runTimeNum + '/'
-        model_file = 'C:/Users/Luke/Documents/sharedFolder/4YP/Models/21stFeb/weights.43-0.01.h5'
-        tmpDicomDir = 'C:/Users/Luke/Documents/sharedFolder/4YP/4YP_Pythoon/temporaryStorage' + runTimeNum + '/dicomFolders/'
-        tmpPredictionDir = 'C:/Users/Luke/Documents/sharedFolder/4YP/4YP_Pythoon/temporaryStorage' + runTimeNum + '/predictionFolders/'
-        bankDicomDir = 'D:/allCases/'
-        bankPredictionDir = 'D:/processedCases/'
+        tmpFolder = '//home/lukemarkham1383/segmentEnvironment/4YP_Python/tmp' + runTimeNum + '/'
+        model_file = '//home/lukemarkham1383/segmentEnvironment/weights.43-0.01.h5'
+        bankDicomDir = '//home/lukemarkham1383/segmentEnvironment/multipleScansGoodMachinesAortaOnlyContrasted/'
+        bankPredictionDir = '//home/lukemarkham1383/segmentEnvironment/segmentedScans/'
+	[os.mkdir(myFolder) for myFolder in [tmpFolder] if not os.path.exists(myFolder)]
 
-    [os.mkdir(myFolder) for myFolder in [tmpFolder, tmpStorageDir, tmpDicomDir, tmpPredictionDir] if not os.path.exists(myFolder)]
 
     # Loads the model
     model = load_model(model_file)
     patientsWeHaveSegmented = [x[0:2] for x in os.listdir(bankPredictionDir)]
     patientsToSegmentList = sorted([x for x in os.listdir(bankDicomDir) if x[0:2] not in patientsWeHaveSegmented])
-    patientsWeWant = ['TE']
+    patientsWeWant = patientsToSegmentList
+    patientsWeWant = [x[0:2] for x in patientsWeWant]
     patientsToSegmentList = sorted([x for x in os.listdir(bankDicomDir) if x[0:2] in patientsWeWant])
     print(patientsToSegmentList)
 
@@ -389,9 +389,10 @@ def main():
         print('Working on patient ' + str(patientNum+1) +'/'+str(len(patientsToSegmentList)))
         patientID = specificEntry[0:2]
         indexStartLocation = indexStartLocations[patientID] if patientID in indexStartLocations.keys() else 0
-        doPatientSegmentationWithStorage(specificEntry, patientsToSegmentList, indexStartLocation, model, boxSize, tmpFolder, tmpDicomDir, tmpPredictionDir, bankDicomDir, bankPredictionDir)
+        
         doPatientSegmentationWithoutStorage(specificEntry, patientsToSegmentList, indexStartLocation, model, boxSize, tmpFolder, bankDicomDir, bankPredictionDir)
         gc.collect()
+	subprocess.call('//home/lukemarkham1383/gdrive-linux-x64 upload //home/lukemarkham1383/segmentEnvironment/segmentLog1.txt', shell=True)
 
 if __name__ == '__main__':
     main()
