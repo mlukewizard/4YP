@@ -62,10 +62,10 @@ def get2MaxConnectedComponents(PC):
         PC = np.where(newPC == maxIndex1, 255, 0) + np.where(newPC == maxIndex2, 255, 0)
     return PC
 
-
-def cleanPointCloud(innerPC, outerPC, patientID, predictionFolder):
+def makeOrPopulateFolders(innerPC, outerPC, patientID, predictionFolder):
     # Making the outer point cloud solid
     outerPC = outerPC + innerPC
+
     outerPredictionFolder = predictionFolder + 'outerPredictions/'
     innerPredictionFolder = predictionFolder + 'innerPredictions/'
     innerAlgoFolder = predictionFolder + 'algoInners/'
@@ -87,6 +87,48 @@ def cleanPointCloud(innerPC, outerPC, patientID, predictionFolder):
 
 
     innerDist = getCumulativeDistribution(innerPC)
+
+    return innerPC, outerPC, patientID, predictionFolder, innerDist
+
+def cleanOuterPointCloud(outerPC, patientID, predictionFolder, innerDist):
+    outerPredictionFolder = predictionFolder + 'outerPredictions/'
+
+    print('Cleaning up the outer point cloud')
+    for i in range(outerPC.shape[0]):
+        outerSlice = np.where(outerPC[i, :, :] > 140, 255, 0)
+        if np.sum(outerPC[i, :, :]) > 5000:
+            if np.count_nonzero(outerSlice) < 100 and innerDist[i] < 0.8 and innerDist[i] > 0.2:
+                outerSlice = np.where(outerPC[i, :, :] > 80, 255, 0)
+                if np.count_nonzero(outerSlice) < 100:
+                    outerSlice = np.where(outerPC[i, :, :] > 40, 255, 0)
+                    if np.count_nonzero(outerSlice) < 100:
+                        outerSlice = np.where(outerPC[i, :, :] > 20, 255, 0)
+                        if np.count_nonzero(outerSlice) < 100:
+                            outerSlice = np.where(outerPC[i, :, :] > 5, 255, 0)
+                            if np.count_nonzero(outerSlice) < 100:
+                                outerSlice = np.where(outerPC[i, :, :] > 2, 255, 0)
+                                if np.count_nonzero(outerSlice) < 100:
+                                    outerSlice = np.where(outerPC[i, :, :] > 0.4, 255, 0)
+        if np.count_nonzero(outerSlice) >= 20:
+            outerPC[i, :, :] = ndimage.binary_fill_holes(outerSlice)
+            outerPC[i, :, :] = ndimage.binary_closing(outerPC[i, :, :], iterations=4)
+        elif np.count_nonzero(outerSlice) < 20:
+            outerPC[i, :, :] = np.zeros([512, 512])
+    print('Getting max connected component')
+    outerPC = getMaxConnectedComponent(outerPC)
+
+    print('Writing cleaned outer images')
+    for i in range(outerPC.shape[0]):
+        if np.max(np.max(outerPC[i, :, :])) > 0:
+            outerPC[i, :, :] = outerPC[i, :, :] / np.max(np.max(outerPC[i, :, :]))
+        misc.toimage(outerPC[i, :, :], cmin=0.0, cmax=1).save((outerPredictionFolder + 'outerPredictedCleaned_' + "%03d" % (i,)).split('.dcm')[0] + '.png')
+
+    print('Writing Outer Point Cloud')
+    np.save(predictionFolder + patientID + 'ThickOuterPointCloud' + '.npy', outerPC)
+
+def cleanInnerPointCloud(innerPC, patientID, predictionFolder, innerDist):
+
+    innerPredictionFolder = predictionFolder + 'innerPredictions/'
 
     print('Cleaning up the inner point cloud')
     # Cleans up the inner point cloud
@@ -122,38 +164,7 @@ def cleanPointCloud(innerPC, outerPC, patientID, predictionFolder):
     print('Writing Inner Point Cloud')
     np.save(predictionFolder + patientID + 'ThickInnerPointCloud' + '.npy', innerPC)
 
-    print('Cleaning up the outer point cloud')
-    for i in range(outerPC.shape[0]):
-        outerSlice = np.where(outerPC[i, :, :] > 140, 255, 0)
-        if np.sum(outerPC[i, :, :]) > 5000:
-            if np.count_nonzero(outerSlice) < 100 and innerDist[i] < 0.8 and innerDist[i] > 0.2:
-                outerSlice = np.where(outerPC[i, :, :] > 80, 255, 0)
-                if np.count_nonzero(outerSlice) < 100:
-                    outerSlice = np.where(outerPC[i, :, :] > 40, 255, 0)
-                    if np.count_nonzero(outerSlice) < 100:
-                        outerSlice = np.where(outerPC[i, :, :] > 20, 255, 0)
-                        if np.count_nonzero(outerSlice) < 100:
-                            outerSlice = np.where(outerPC[i, :, :] > 5, 255, 0)
-                            if np.count_nonzero(outerSlice) < 100:
-                                outerSlice = np.where(outerPC[i, :, :] > 2, 255, 0)
-                                if np.count_nonzero(outerSlice) < 100:
-                                    outerSlice = np.where(outerPC[i, :, :] > 0.4, 255, 0)
-        if np.count_nonzero(outerSlice) >= 20:
-            outerPC[i, :, :] = ndimage.binary_fill_holes(outerSlice)
-            outerPC[i, :, :] = ndimage.binary_closing(outerPC[i, :, :], iterations=4)
-        elif np.count_nonzero(outerSlice) < 20:
-            outerPC[i, :, :] = np.zeros([512, 512])
-    print('Getting max connected component')
-    outerPC = getMaxConnectedComponent(outerPC)
 
-    print('Writing cleaned outer images')
-    for i in range(outerPC.shape[0]):
-        if np.max(np.max(outerPC[i, :, :])) > 0:
-            outerPC[i, :, :] = outerPC[i, :, :] / np.max(np.max(outerPC[i, :, :]))
-        misc.toimage(outerPC[i, :, :], cmin=0.0, cmax=1).save((outerPredictionFolder + 'outerPredictedCleaned_' + "%03d" % (i,)).split('.dcm')[0] + '.png')
-
-    print('Writing Outer Point Cloud')
-    np.save(predictionFolder + patientID + 'ThickOuterPointCloud' + '.npy', outerPC)
 
 def doPatientSegmentationWithoutStorage(specificEntry, patientsToSegmentList, indexStartLocation, model, boxSize, tmpFolder, bankDicomDir, bankPredictionDir):
     patientID = specificEntry[0:2]
@@ -230,7 +241,7 @@ def doPatientSegmentationWithoutStorage(specificEntry, patientsToSegmentList, in
         innerPC = np.load(predictionFolder + patientID + '_innerBinaryArray' + '.npy')
         outerPC = np.load(predictionFolder + patientID + '_outerBinaryArray' + '.npy')
 
-    cleanPointCloud(innerPC, outerPC, patientID, predictionFolder)
+    return innerPC, outerPC, patientID, predictionFolder
 
 def doPatientSegmentationWithStorage(specificEntry, uncompletedFileList, indexStartLocation, model, boxSize, tmpFolder, tmpDicomDir, tmpPredictionDir, bankDicomDir, bankPredictionDir):
     patientID = specificEntry[0:2]
@@ -318,8 +329,6 @@ def doPatientSegmentationWithStorage(specificEntry, uncompletedFileList, indexSt
         innerPC = np.load(predictionFolder + patientID + '_innerBinaryArray' + '.npy')
         outerPC = np.load(predictionFolder + patientID + '_outerBinaryArray' + '.npy')
 
-    cleanPointCloud(innerPC, outerPC, patientID, predictionFolder)
-
 def tryUpdateFileSystem(specificEntry, uncompletedFileList, tmpDicomDir, tmpPredictionDir, bankDicomDir, bankPredictionDir):
     currentIndex = uncompletedFileList.index(specificEntry)
     dicomFoldersWeWant = {uncompletedFileList[currentIndex % len(uncompletedFileList)]}
@@ -365,13 +374,13 @@ def main():
         tmpPredictionDir = 'C:/Users/Luke/Documents/sharedFolder/4YP/4YP_Pythoon/temporaryStorage' + runTimeNum + '/predictionFolders/'
         bankDicomDir = 'D:/allCases/'
         bankPredictionDir = 'D:/processedCases/'
-	[os.mkdir(myFolder) for myFolder in [tmpFolder, tmpStorageDir, tmpDicomDir, tmpPredictionDir] if not os.path.exists(myFolder)]
+        [os.mkdir(myFolder) for myFolder in [tmpFolder, tmpStorageDir, tmpDicomDir, tmpPredictionDir] if not os.path.exists(myFolder)]
     else:
         tmpFolder = '//home/lukemarkham1383/segmentEnvironment/4YP_Python/tmp' + runTimeNum + '/'
         model_file = '//home/lukemarkham1383/segmentEnvironment/weights.43-0.01.h5'
         bankDicomDir = '//home/lukemarkham1383/segmentEnvironment/multipleScansGoodMachinesAortaOnlyContrasted/'
         bankPredictionDir = '//home/lukemarkham1383/segmentEnvironment/segmentedScans/'
-	[os.mkdir(myFolder) for myFolder in [tmpFolder] if not os.path.exists(myFolder)]
+    [os.mkdir(myFolder) for myFolder in [tmpFolder] if not os.path.exists(myFolder)]
 
 
     # Loads the model
@@ -389,10 +398,16 @@ def main():
         print('Working on patient ' + str(patientNum+1) +'/'+str(len(patientsToSegmentList)))
         patientID = specificEntry[0:2]
         indexStartLocation = indexStartLocations[patientID] if patientID in indexStartLocations.keys() else 0
-        
-        doPatientSegmentationWithoutStorage(specificEntry, patientsToSegmentList, indexStartLocation, model, boxSize, tmpFolder, bankDicomDir, bankPredictionDir)
+
+        innerPC, outerPC, patientID, predictionFolder = doPatientSegmentationWithoutStorage(specificEntry, patientsToSegmentList, indexStartLocation, model, boxSize, tmpFolder, bankDicomDir, bankPredictionDir)
         gc.collect()
-	subprocess.call('//home/lukemarkham1383/gdrive-linux-x64 upload //home/lukemarkham1383/segmentEnvironment/segmentLog1.txt', shell=True)
+        innerPC, outerPC, patientID, predictionFolder, innerDist = makeOrPopulateFolders(innerPC, outerPC, patientID, predictionFolder)
+        gc.collect()
+        cleanInnerPointCloud(innerPC, patientID, predictionFolder, innerDist)
+        gc.collect()
+        cleanOuterPointCloud(outerPC, patientID, predictionFolder, innerDist)
+        gc.collect()
+        subprocess.call('//home/lukemarkham1383/gdrive-linux-x64 upload //home/lukemarkham1383/segmentEnvironment/segmentLog1.txt', shell=True)
 
 if __name__ == '__main__':
     main()
