@@ -270,7 +270,8 @@ def main():
     dictPath = 'C:/Users/Luke/Documents/sharedFolder/4YP/dicts/'
     spacingDictDir = 'C:/Users/Luke/Documents/sharedFolder/4YP/Spacings.npy'
     thicknessDictDir = 'C:/Users/Luke/Documents/sharedFolder/4YP/Thicknesses.npy'
-    pointCloudParentDir = 'D:/processedCases/'
+    pointCloudParentDir = 'D:/newCases/processedPairs/'
+    '''
     renalArteryDict = {'DC': 162, 'NS ': 218, 'PB': 229, 'PS': 226, 'RR': 194, 'GC': 256, 'MH': 226, 'AA': 196, 'AD': 213, 'AE': 238, 'AF': 238, 'AG': 204, 'AI': 276,
                        'AJ': 205, 'CC': 100, 'CE': 263, 'CG': 259, 'CI': 276, 'CK': 208, 'CM': 272, 'CO': 266, 'CQ': 245, 'CS': 200, 'CU': 266, 'CW': 237, 'XC': 239,
                        'DK': 282, 'DM': 250, 'DQ': 252, 'DW': 261, 'EI': 272, 'EK': 234, 'EO': 274, 'EQ': 259, 'ES': 290, 'EU': 234, 'EY': 348, 'FA': 251, 'FG': 86,
@@ -281,18 +282,22 @@ def main():
                    'DQ': 1.07, 'GY': 0.6962, 'AJ': 0.2899, 'HC': 0.2899, 'HG': 1.9501, 'DW': 1.7311, 'HI': 1.6085, 'EI': 1.7013, 'EK': 1.875, 'EO': 0.88, 'EQ': 1.2077,
                    'ES': -1.03092783505154, 'EU': 0.59642147117295, 'EY': 4.3716, 'FA': -2.105, 'HS': 3.55029585798817, 'HW': 1.42857142857142, 'FG': 2.13333333333334,
                    'FI': -0.544959128065396}
+    '''
+    renalArteryDict = {'HA': 276, 'HC': 276, 'KG': 114, 'KK': 66, 'LW': 66, 'MA': 215}
+
     pixelSpacingDict = np.load(spacingDictDir).item()
     thicknessDict = np.load(thicknessDictDir).item()
     patientListDir = sorted(os.listdir(pointCloudParentDir))
-    patientListDir = [dir for dir in patientListDir if dir[0:2] in TPThreeDict.keys() and 'zip' not in dir]
-    alreadyExtracted = [dir[0:2] for dir in os.listdir('C:/Users/Luke/Documents/sharedFolder/4YP/dicts/')]
-    patientListDir = [dir for dir in patientListDir if dir[0:2] not in alreadyExtracted]
+    #patientListDir = [dir for dir in patientListDir if dir[0:2] in TPThreeDict.keys() and 'zip' not in dir]
+    #alreadyExtracted = [dir[0:2] for dir in os.listdir('C:/Users/Luke/Documents/sharedFolder/4YP/dicts/')]
+    #patientListDir = [dir for dir in patientListDir if dir[0:2] not in alreadyExtracted]
+
     for i, segmentedPatientDir in enumerate(patientListDir):
         patientID = segmentedPatientDir[0:2]
         print()
         print('-------------------------------------------------------------')
         print('Patient ' + patientID + ', ' + str(i+1) + '/' + str(len(patientListDir)))
-        print('Renal artery at ' + str(renalArteryDict[patientID]))
+        #print('Renal artery at ' + str(renalArteryDict[patientID]))
         numpyPointCloudFiles = {'innerPointCloud':pointCloudParentDir + segmentedPatientDir + '/' + patientID + 'ThickInnerPointCloud.npy',
                                 'outerPointCloud': pointCloudParentDir + segmentedPatientDir + '/' + patientID + 'ThickOuterPointCloud.npy'}
         myInnerPointCloud = np.load(numpyPointCloudFiles['innerPointCloud'])
@@ -300,7 +305,7 @@ def main():
         myOuterPointCloud = np.load(numpyPointCloudFiles['outerPointCloud'])
         myOuterPointCloud = np.where(myOuterPointCloud > 0, 255, 0)
 
-        patientFeatureDict = extractFeaturesFromPointClouds(patientID, myInnerPointCloud, myOuterPointCloud, renalArteryDict[patientID], thicknessDict[patientID], pixelSpacingDict[patientID])
+        patientFeatureDict = extractFeaturesFromPointClouds(patientID, myInnerPointCloud, myOuterPointCloud, 10, thicknessDict[patientID], pixelSpacingDict[patientID])
         np.save(dictPath + patientID + 'featureDict' + str(datetime.datetime.today()).split('.')[0].replace(':', '-') + '.npy', patientFeatureDict)
 
 if __name__ == "__main__":

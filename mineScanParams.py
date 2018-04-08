@@ -3,9 +3,7 @@ import dicom
 import numpy as np
 import sys
 
-def main():
-    #extractPatientDictionaries()
-    getContrastInfo()
+
 
 def getContrastInfo():
     dicomFoldersDir = 'D:/myRearrangedFolders/'
@@ -89,7 +87,7 @@ def extractMachineNames():
 
 
 def extractPatientDictionaries():
-    dicomFoldersDir = 'D:/allCases/'
+    dicomFoldersDir = 'D:/newCases/dicomPairs/'
     dicomFolderList = sorted(os.listdir(dicomFoldersDir))
     dictOfThicknesses = {}
     dictOfSpacings = {}
@@ -105,8 +103,12 @@ def extractPatientDictionaries():
         dictOfThicknesses[patientID] = fileAttributes.SliceThickness
         dictOfSpacings[patientID] = fileAttributes.PixelSpacing
         print(patientID + ' = ' + fileAttributes.ManufacturerModelName)
-    # np.save('../Spacings.npy', dictOfSpacings)
-    # np.save('../Thicknesses.npy', dictOfThicknesses)
+    np.save('../Spacings.npy', dictOfSpacings)
+    np.save('../Thicknesses.npy', dictOfThicknesses)
+
+def main():
+    extractPatientDictionaries()
+    #getContrastInfo()
 
 if __name__ == '__main__':
     main()

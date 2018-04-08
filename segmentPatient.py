@@ -329,10 +329,12 @@ def doPatientSegmentationWithStorage(specificEntry, uncompletedFileList, indexSt
         innerPC = np.load(predictionFolder + patientID + '_innerBinaryArray' + '.npy')
         outerPC = np.load(predictionFolder + patientID + '_outerBinaryArray' + '.npy')
 
+    return innerPC, outerPC, patientID, predictionFolder
+
 def tryUpdateFileSystem(specificEntry, uncompletedFileList, tmpDicomDir, tmpPredictionDir, bankDicomDir, bankPredictionDir):
     currentIndex = uncompletedFileList.index(specificEntry)
     dicomFoldersWeWant = {uncompletedFileList[currentIndex % len(uncompletedFileList)]}
-                   #uncompletedFileList[currentIndex +1 % len(uncompletedFileList)]}
+                   #uncompletedFileList[currentIndex +1 % len(uncompletedFileList)]
                    #uncompletedFileList[currentIndex +2 % len(uncompletedFileList)]}
     dicomFoldersWeHave = set(os.listdir(tmpDicomDir))
     if dicomFoldersWeWant == dicomFoldersWeHave:
@@ -347,9 +349,9 @@ def tryUpdateFileSystem(specificEntry, uncompletedFileList, tmpDicomDir, tmpPred
                                         #uncompletedFileList[currentIndex + 1 % len(uncompletedFileList)][0:2] + '_processed'}
                                         #uncompletedFileList[currentIndex + 2 % len(uncompletedFileList)][0:2] + '_processed'}
             predictionFoldersWeHave = set(os.listdir(tmpPredictionDir))
-            #for newlyMadePredictionFolder in list(predictionFoldersWeHave - predictionFoldersWeWant):
-            #    print('Moving folder ' + newlyMadePredictionFolder + ' to the permanent prediction bank storage')
-            #    shutil.move(tmpPredictionDir + newlyMadePredictionFolder, bankPredictionDir + newlyMadePredictionFolder)
+            for newlyMadePredictionFolder in list(predictionFoldersWeHave - predictionFoldersWeWant):
+                print('Moving folder ' + newlyMadePredictionFolder + ' to the permanent prediction bank storage')
+                shutil.move(tmpPredictionDir + newlyMadePredictionFolder, bankPredictionDir + newlyMadePredictionFolder)
             for previouslyUsedDicomFolder in list(dicomFoldersWeHave - dicomFoldersWeWant):
                 print('Deleting used dicom folder ' + previouslyUsedDicomFolder + ' from temporary storage')
                 shutil.rmtree(tmpDicomDir + previouslyUsedDicomFolder)
@@ -367,13 +369,13 @@ def main():
     runTimeNum = '1'
 
     if get_mac() == 57277338463062:
-        tmpStorageDir = 'C:/Users/Luke/Documents/sharedFolder/4YP/4YP_Pythoon/temporaryStorage' + runTimeNum +'/'
-        tmpFolder = 'C:/Users/Luke/Documents/sharedFolder/4YP/4YP_Pythoon/tmp' + runTimeNum + '/'
+        tmpStorageDir = 'C:/Users/Luke/Documents/sharedFolder/4YP/4YP_Python/temporaryStorage' + runTimeNum +'/'
+        tmpFolder = 'C:/Users/Luke/Documents/sharedFolder/4YP/4YP_Python/tmp' + runTimeNum + '/'
         model_file = 'C:/Users/Luke/Documents/sharedFolder/4YP/Models/21stFeb/weights.43-0.01.h5'
-        tmpDicomDir = 'C:/Users/Luke/Documents/sharedFolder/4YP/4YP_Pythoon/temporaryStorage' + runTimeNum + '/dicomFolders/'
-        tmpPredictionDir = 'C:/Users/Luke/Documents/sharedFolder/4YP/4YP_Pythoon/temporaryStorage' + runTimeNum + '/predictionFolders/'
-        bankDicomDir = 'D:/allCases/'
-        bankPredictionDir = 'D:/processedCases/'
+        tmpDicomDir = 'C:/Users/Luke/Documents/sharedFolder/4YP/4YP_Python/temporaryStorage' + runTimeNum + '/dicomFolders/'
+        tmpPredictionDir = 'C:/Users/Luke/Documents/sharedFolder/4YP/4YP_Python/temporaryStorage' + runTimeNum + '/predictionFolders/'
+        bankDicomDir = 'D:/newCases/multipleScansGoodMachinesAortaOnlyContrasted/'
+        bankPredictionDir = 'D:/newCases/processed/'
         [os.mkdir(myFolder) for myFolder in [tmpFolder, tmpStorageDir, tmpDicomDir, tmpPredictionDir] if not os.path.exists(myFolder)]
     else:
         tmpFolder = '//home/lukemarkham1383/segmentEnvironment/4YP_Python/tmp' + runTimeNum + '/'
@@ -387,6 +389,9 @@ def main():
     model = load_model(model_file)
     patientsWeHaveSegmented = [x[0:2] for x in os.listdir(bankPredictionDir)]
     patientsToSegmentList = sorted([x for x in os.listdir(bankDicomDir) if x[0:2] not in patientsWeHaveSegmented])
+    #patientsWeWant = [x[0:2] for x in patientsToSegmentList]
+    #patientsWeWant = patientsToSegmentList[patientsToSegmentList.index('QI'):]
+    #patientsWeWant = patientsToSegmentList[:int(np.ceil(len(patientsToSegmentList)/2))]
     patientsWeWant = patientsToSegmentList
     patientsWeWant = [x[0:2] for x in patientsWeWant]
     patientsToSegmentList = sorted([x for x in os.listdir(bankDicomDir) if x[0:2] in patientsWeWant])
@@ -394,12 +399,11 @@ def main():
 
 
     for patientNum, specificEntry in enumerate(patientsToSegmentList):
-        print('Starting loop at ' + str(time.time()))
         print('Working on patient ' + str(patientNum+1) +'/'+str(len(patientsToSegmentList)))
         patientID = specificEntry[0:2]
         indexStartLocation = indexStartLocations[patientID] if patientID in indexStartLocations.keys() else 0
-
-        innerPC, outerPC, patientID, predictionFolder = doPatientSegmentationWithoutStorage(specificEntry, patientsToSegmentList, indexStartLocation, model, boxSize, tmpFolder, bankDicomDir, bankPredictionDir)
+        innerPC, outerPC, patientID, predictionFolder = doPatientSegmentationWithStorage(specificEntry, patientsToSegmentList, indexStartLocation, model, boxSize, tmpFolder, tmpDicomDir, tmpPredictionDir, bankDicomDir, bankPredictionDir)
+        #innerPC, outerPC, patientID, predictionFolder = doPatientSegmentationWithoutStorage(specificEntry, patientsToSegmentList, indexStartLocation, model, boxSize, tmpFolder, bankDicomDir, bankPredictionDir)
         gc.collect()
         innerPC, outerPC, patientID, predictionFolder, innerDist = makeOrPopulateFolders(innerPC, outerPC, patientID, predictionFolder)
         gc.collect()
@@ -407,7 +411,7 @@ def main():
         gc.collect()
         cleanOuterPointCloud(outerPC, patientID, predictionFolder, innerDist)
         gc.collect()
-        subprocess.call('//home/lukemarkham1383/gdrive-linux-x64 upload //home/lukemarkham1383/segmentEnvironment/segmentLog1.txt', shell=True)
+        #subprocess.call('//home/lukemarkham1383/gdrive-linux-x64 upload //home/lukemarkham1383/segmentEnvironment/segmentLog1.txt', shell=True)
 
 if __name__ == '__main__':
     main()
